@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"embed"
 
 	"github.com/wailsapp/wails/v2"
@@ -28,7 +27,8 @@ func main() {
 		},
 		BackgroundColour: &options.RGBA{R: 19, G: 19, B: 20, A: 1},
 		OnStartup:        app.OnStartup,
-		Context:          context.Background(),
+		// Bind the app instance - exported methods will be available in frontend
+		Bind: []interface{}{app},
 	})
 
 	if err != nil {
