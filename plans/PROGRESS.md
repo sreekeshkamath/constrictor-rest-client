@@ -46,3 +46,33 @@ This file tracks progress through the implementation plan. **After each complete
 
 **Blockers/Notes:**
 - None
+
+---
+
+## [2025-01-XX XX:XX] - Step 1: Scaffold Go module + SOLID folder layout
+
+**Completed:**
+- Initialized Go module with gorilla/mux dependency
+- Created SOLID folder structure: cmd/constrictor-rest-client/, internal/config/
+- Implemented /api/health endpoint returning {"ok": true}
+- Added configuration package with environment variable support (PORT, CONSTRICTOR_DATA_PATH)
+- Wrote tests for health endpoint and config package
+- Added .gitignore for Go, Node, and data files
+
+**Files Changed:**
+- go.mod, go.sum (created)
+- cmd/constrictor-rest-client/main.go (created)
+- cmd/constrictor-rest-client/main_test.go (created)
+- internal/config/config.go (created)
+- internal/config/config_test.go (created)
+- .gitignore (created)
+
+**How to Verify:**
+- Run: `go test ./...`
+- Run: `go run cmd/constrictor-rest-client/main.go` and test `curl http://localhost:8080/api/health`
+
+**Next Steps:**
+- Implement WorkspaceStore interface + file-backed store with versioned JSON persistence
+
+**Blockers/Notes:**
+- None
