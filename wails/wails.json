@@ -1,0 +1,23 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "constrictor-rest-client",
+  "outputfilename": "constrictor-rest-client",
+  "frontend": {
+    "dir": "frontend/dist",
+    "install": "",
+    "build": "",
+    "dev": "",
+    "bridge": "",
+    "serve": ""
+  },
+  "author": {
+    "name": "Constrictor",
+    "email": ""
+  },
+  "info": {
+    "productName": "Constrictor REST Client",
+    "productVersion": "1.0.0",
+    "copyright": "Copyright...",
+    "comments": "REST API testing tool"
+  }
+}
