@@ -26,8 +26,8 @@ func main() {
 			Assets: assets,
 		},
 		BackgroundColour: &options.RGBA{R: 19, G: 19, B: 20, A: 1},
-		OnStartup:      app.OnStartup,
-		Context:        context.Background(),
+		OnStartup:        app.OnStartup,
+		Context:          context.Background(),
 	})
 
 	if err != nil {
