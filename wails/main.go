@@ -18,6 +18,7 @@ func main() {
 	app := NewApp()
 
 	// Create application with options
+	// In Wails v2, exported methods on the app struct are automatically bound to the frontend
 	err := wails.Run(&options.App{
 		Title:  "Constrictor REST Client",
 		Width:  1400,
