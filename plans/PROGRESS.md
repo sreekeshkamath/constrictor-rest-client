@@ -129,3 +129,92 @@ This file tracks progress through the implementation plan. **After each complete
 
 **Blockers/Notes:**
 - None
+
+---
+
+## [2025-01-XX XX:XX] - Step 4: Build HTTP API
+
+**Completed:**
+- Created HTTP API handlers package with validation and error model
+- Implemented GET /api/workspace to load workspace
+- Implemented PUT /api/workspace to save workspace with validation
+- Implemented POST /api/execute to execute HTTP requests
+- Added request validation (method, URL, bodyType)
+- Convert domain types to executor types (headers, formData)
+- Wired up handlers in main.go with dependencies (store, executor)
+- Wrote comprehensive tests: GET/PUT workspace, execute with various scenarios, validation errors
+- Added router setup function for clean route configuration
+
+**Files Changed:**
+- internal/httpapi/handlers.go (created)
+- internal/httpapi/handlers_test.go (created)
+- internal/httpapi/router.go (created)
+- cmd/constrictor-rest-client/main.go (updated)
+
+**How to Verify:**
+- Run: `go test ./internal/httpapi/... -v`
+- Run server and test endpoints with curl
+
+**Next Steps:**
+- Create new React web UI in constrictor-rest-client/web/
+
+**Blockers/Notes:**
+- None
+
+---
+
+## [2025-01-XX XX:XX] - Step 5: Create React Web UI
+
+**Completed:**
+- Set up Vite + React + TypeScript project with Tailwind CSS
+- Created all components: Sidebar, RequestEditor, ResponseViewer, SettingsModal, MethodBadge
+- Implemented App component connecting to Go backend API (/api/workspace, /api/execute)
+- Mirrored reference UI functionality: requests, folders, headers, body types, response viewer
+- Added workspace persistence via backend API (debounced saves)
+- Support all features: create/delete/rename items, drag-and-drop, search, export/import
+- Configured Vite proxy for API requests during development
+
+**Files Changed:**
+- web/package.json (created)
+- web/vite.config.ts (created)
+- web/tsconfig.json (created)
+- web/tailwind.config.js (created)
+- web/postcss.config.js (created)
+- web/index.html (created)
+- web/src/index.tsx (created)
+- web/src/index.css (created)
+- web/src/types.ts (created)
+- web/src/App.tsx (created)
+- web/src/components/*.tsx (created)
+
+**How to Verify:**
+- Run: `cd web && npm install && npm run dev`
+- Run Go server and test UI in browser
+
+**Next Steps:**
+- Write DESIGN.md and update plans/PROGRESS.md
+
+**Blockers/Notes:**
+- None
+
+---
+
+## [2025-01-XX XX:XX] - Step 6: Write DESIGN.md and update PROGRESS.md
+
+**Completed:**
+- Created comprehensive DESIGN.md with architecture overview, package structure, domain model, API contract, persistence details, configuration, frontend architecture, testing strategy, error handling, security considerations, deployment instructions, and future enhancements
+- Updated PROGRESS.md with entries for steps 4 and 5
+
+**Files Changed:**
+- DESIGN.md (created)
+- plans/PROGRESS.md (updated)
+
+**How to Verify:**
+- Review DESIGN.md for completeness
+- Review PROGRESS.md for all completed steps
+
+**Next Steps:**
+- Add agents.md files to key folders
+
+**Blockers/Notes:**
+- None
