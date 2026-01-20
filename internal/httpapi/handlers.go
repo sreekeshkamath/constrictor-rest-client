@@ -3,7 +3,6 @@ package httpapi
 import (
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"github.com/constrictor/constrictor-rest-client/internal/domain"
 	"github.com/constrictor/constrictor-rest-client/internal/executor"
