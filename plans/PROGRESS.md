@@ -218,3 +218,38 @@ This file tracks progress through the implementation plan. **After each complete
 
 **Blockers/Notes:**
 - None
+
+---
+
+## [2025-01-XX XX:XX] - Step 7: Add agents.md files
+
+**Completed:**
+- Created agents.md files in all key folders:
+  - Root agents.md (repository overview)
+  - cmd/constrictor-rest-client/agents.md
+  - internal/domain/agents.md
+  - internal/executor/agents.md
+  - internal/storage/agents.md
+  - internal/httpapi/agents.md
+  - web/agents.md
+  - wails/agents.md
+- Each agents.md file documents purpose, key files, how to run/test, and usage examples
+
+**Files Changed:**
+- agents.md (created)
+- cmd/constrictor-rest-client/agents.md (created)
+- internal/domain/agents.md (created)
+- internal/executor/agents.md (created)
+- internal/storage/agents.md (created)
+- internal/httpapi/agents.md (created)
+- web/agents.md (created)
+- wails/agents.md (created)
+
+**How to Verify:**
+- Review agents.md files in each folder
+
+**Next Steps:**
+- Add Wails desktop packaging
+
+**Blockers/Notes:**
+- None
