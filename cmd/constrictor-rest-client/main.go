@@ -25,7 +25,7 @@ func main() {
 	handlers := httpapi.NewHandlers(store, exec)
 
 	r := mux.NewRouter()
-	
+
 	// API routes
 	api := r.PathPrefix("/api").Subrouter()
 	api.HandleFunc("/health", handleHealth).Methods("GET")

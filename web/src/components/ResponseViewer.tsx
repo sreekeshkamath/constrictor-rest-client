@@ -34,7 +34,7 @@ const JsonNode: React.FC<{ data: any; label?: string; depth?: number }> = ({ dat
 
   return (
     <div className="flex flex-col">
-      <div 
+      <div
         onClick={() => setIsCollapsed(!isCollapsed)}
         className="flex items-center gap-2 py-1 cursor-pointer hover:bg-[#2a2b2f] group rounded px-1 transition-colors"
       >

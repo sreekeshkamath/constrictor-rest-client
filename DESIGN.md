@@ -83,7 +83,7 @@ type WorkspaceItem struct {
     Type      string  `json:"type"` // "request" or "folder"
     ParentID  *string `json:"parentId,omitempty"`
     CreatedAt int64   `json:"createdAt"`
-    
+
     // Request-specific fields
     Method   *string     `json:"method,omitempty"`
     URL      *string     `json:"url,omitempty"`

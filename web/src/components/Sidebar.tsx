@@ -16,11 +16,11 @@ interface SidebarProps {
   onImport: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ 
-  items, 
-  activeId, 
-  onSelect, 
-  onCreateRequest, 
+const Sidebar: React.FC<SidebarProps> = ({
+  items,
+  activeId,
+  onSelect,
+  onCreateRequest,
   onCreateFolder,
   onDelete,
   onRename,
@@ -75,7 +75,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     };
 
     return (
-      <div 
+      <div
         key={item.id}
         draggable={item.type === 'request'}
         onDragStart={(e) => handleDragStart(e, item.id)}
@@ -84,8 +84,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         onDrop={(e) => isFolder ? handleDrop(e, item.id) : null}
         onClick={() => !isFolder && onSelect(item.id)}
         className={`group relative flex items-center px-4 py-2 text-[13px] cursor-pointer transition-all duration-150 border-l-4 ${
-          isActive 
-            ? 'bg-[#2a2b2f] border-[#8ab4f8] text-[#8ab4f8] font-bold' 
+          isActive
+            ? 'bg-[#2a2b2f] border-[#8ab4f8] text-[#8ab4f8] font-bold'
             : 'border-transparent hover:bg-[#2a2b2f] text-[#9aa0a6] hover:text-[#e8eaed]'
         } ${isBeingDraggedOver ? 'bg-[#3c4043] scale-[1.02]' : ''}`}
       >
@@ -99,7 +99,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           )}
 
           {editingId === item.id ? (
-            <input 
+            <input
               autoFocus
               className="bg-[#131314] text-white rounded px-1 w-full outline-none ring-1 ring-[#8ab4f8] font-bold"
               value={tempName}
@@ -143,8 +143,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       <div className="px-4 pb-4">
         <div className="relative group">
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder="Search..."
             className="w-full bg-[#131314] border border-[#3c4043] rounded-lg py-2 pl-9 pr-3 text-[13px] text-[#e8eaed] placeholder-[#5f6368] outline-none focus:border-[#8ab4f8] transition-colors"
             value={searchQuery}
@@ -176,13 +176,13 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       <div className="p-4 border-t border-[#3c4043] flex flex-col gap-3">
         <div className="flex gap-2">
-           <button 
+           <button
             onClick={onExport}
             className="flex-1 flex items-center justify-center gap-2 py-2 text-[11px] font-bold uppercase tracking-widest text-[#9aa0a6] hover:text-[#e8eaed] bg-[#2a2b2f] rounded transition-colors"
           >
             Export
           </button>
-          <button 
+          <button
             onClick={() => fileInputRef.current?.click()}
             className="flex-1 flex items-center justify-center gap-2 py-2 text-[11px] font-bold uppercase tracking-widest text-[#9aa0a6] hover:text-[#e8eaed] bg-[#2a2b2f] rounded transition-colors"
           >
@@ -190,7 +190,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           </button>
           <input type="file" ref={fileInputRef} onChange={onImport} accept=".json" className="hidden" />
         </div>
-        <button 
+        <button
           onClick={onOpenSettings}
           className="flex items-center gap-3 text-[12px] font-bold uppercase tracking-widest text-[#9aa0a6] hover:text-[#8ab4f8] transition-colors"
         >

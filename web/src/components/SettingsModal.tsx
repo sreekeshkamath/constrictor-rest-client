@@ -39,7 +39,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onUpdate, onClo
                 <h3 className="heading-bold text-[12px] tracking-widest text-[#e8eaed]">Google Drive Sync</h3>
                 <p className="text-[12px] text-[#9aa0a6] font-medium mt-1">Mirror your requests to cloud storage</p>
               </div>
-              <button 
+              <button
                 onClick={handleGDriveToggle}
                 className={`w-12 h-6 rounded-full transition-colors relative ${settings.gdrive.enabled ? 'bg-[#8ab4f8]' : 'bg-[#3c4043]'}`}
               >
@@ -51,7 +51,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onUpdate, onClo
               <div className="space-y-5 pt-4 border-t border-[#3c4043]">
                 <div className="space-y-2">
                   <label className="text-[11px] font-bold uppercase tracking-widest text-[#9aa0a6]">API Key</label>
-                  <input 
+                  <input
                     type="password"
                     className="w-full bg-[#131314] border border-[#3c4043] rounded-lg p-3 text-[14px] text-[#e8eaed] outline-none focus:border-[#8ab4f8] transition-colors"
                     placeholder="Enter Key..."
@@ -62,7 +62,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onUpdate, onClo
                 </div>
                 <div className="space-y-2">
                   <label className="text-[11px] font-bold uppercase tracking-widest text-[#9aa0a6]">OAuth Client ID</label>
-                  <input 
+                  <input
                     type="text"
                     className="w-full bg-[#131314] border border-[#3c4043] rounded-lg p-3 text-[14px] text-[#e8eaed] outline-none focus:border-[#8ab4f8] transition-colors"
                     placeholder="Enter Client ID..."

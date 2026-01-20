@@ -48,14 +48,14 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
     <div className="flex flex-col h-full bg-[#131314]">
       <div className="p-6 border-b border-[#3c4043] space-y-4">
         <div className="flex items-center gap-2">
-          <select 
+          <select
             className="bg-[#1e1e20] border border-[#3c4043] text-[#e8eaed] text-[13px] font-bold rounded-lg h-10 px-3 outline-none focus:border-[#8ab4f8] cursor-pointer"
             value={request.method}
             onChange={(e) => onUpdate({ method: e.target.value as HttpMethod })}
           >
             {methods.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
-          <input 
+          <input
             type="text"
             className="flex-1 bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[15px] rounded-lg h-10 px-4 outline-none focus:border-[#8ab4f8] transition-colors placeholder-[#5f6368]"
             placeholder="https://api.example.com/endpoint"
@@ -63,7 +63,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
             onChange={(e) => onUpdate({ url: e.target.value })}
             onKeyDown={(e) => e.key === 'Enter' && onSend()}
           />
-          <button 
+          <button
             onClick={onSend}
             disabled={isLoading}
             className="bg-[#8ab4f8] hover:bg-[#aecbfa] disabled:bg-[#3c4043] text-[#131314] font-bold text-[13px] h-10 px-6 rounded-lg transition-all active:scale-95 flex items-center gap-2 uppercase tracking-widest shadow-lg shadow-[#8ab4f8]/10"
@@ -84,7 +84,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
       </div>
 
       <div className="flex border-b border-[#3c4043] px-6 gap-6">
-        <button 
+        <button
           onClick={() => setActiveTab('headers')}
           className={`py-4 text-[12px] font-bold uppercase tracking-widest border-b-2 transition-all ${
             activeTab === 'headers' ? 'border-[#8ab4f8] text-[#8ab4f8]' : 'border-transparent text-[#9aa0a6] hover:text-[#e8eaed]'
@@ -92,7 +92,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
         >
           Headers ({request.headers.length})
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('body')}
           className={`py-4 text-[12px] font-bold uppercase tracking-widest border-b-2 transition-all ${
             activeTab === 'body' ? 'border-[#8ab4f8] text-[#8ab4f8]' : 'border-transparent text-[#9aa0a6] hover:text-[#e8eaed]'
@@ -114,26 +114,26 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
             {request.headers.map((h, i) => (
               <div key={i} className="grid grid-cols-[30px_1fr_1fr_40px] gap-3 group">
                 <div className="flex items-center justify-center">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     className="accent-[#8ab4f8] rounded w-4 h-4"
                     checked={h.enabled}
                     onChange={(e) => updateHeader(i, 'enabled', e.target.checked)}
                   />
                 </div>
-                <input 
+                <input
                   className="bg-[#1e1e20] border border-[#3c4043] rounded-lg px-3 py-2 text-[14px] outline-none focus:border-[#8ab4f8] text-[#e8eaed]"
                   placeholder="Key"
                   value={h.key}
                   onChange={(e) => updateHeader(i, 'key', e.target.value)}
                 />
-                <input 
+                <input
                   className="bg-[#1e1e20] border border-[#3c4043] rounded-lg px-3 py-2 text-[14px] outline-none focus:border-[#8ab4f8] text-[#e8eaed]"
                   placeholder="Value"
                   value={h.value}
                   onChange={(e) => updateHeader(i, 'value', e.target.value)}
                 />
-                <button 
+                <button
                   onClick={() => removeHeader(i)}
                   className="opacity-0 group-hover:opacity-100 flex items-center justify-center text-[#5f6368] hover:text-[#f28b82] transition-opacity"
                 >
@@ -143,7 +143,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
                 </button>
               </div>
             ))}
-            <button 
+            <button
               onClick={addHeader}
               className="mt-4 text-[12px] font-bold text-[#8ab4f8] hover:text-[#aecbfa] flex items-center gap-1 uppercase tracking-widest transition-colors"
             >
@@ -161,8 +161,8 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
                   key={type}
                   onClick={() => onUpdate({ bodyType: type })}
                   className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded-md transition-all ${
-                    request.bodyType === type 
-                      ? 'bg-[#8ab4f8] text-[#131314]' 
+                    request.bodyType === type
+                      ? 'bg-[#8ab4f8] text-[#131314]'
                       : 'text-[#9aa0a6] hover:text-[#e8eaed]'
                   }`}
                 >
@@ -178,7 +178,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
             )}
 
             {request.bodyType === 'json' && (
-              <textarea 
+              <textarea
                 className="flex-1 bg-[#1e1e20] border border-[#3c4043] rounded-xl p-5 mono text-[14px] outline-none focus:border-[#8ab4f8] text-[#e8eaed] resize-none leading-relaxed shadow-inner"
                 placeholder='{ "message": "hello world" }'
                 value={request.body}
@@ -197,26 +197,26 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
                 {request.formData.map((item, i) => (
                   <div key={i} className="grid grid-cols-[30px_1fr_1fr_40px] gap-3 group">
                     <div className="flex items-center justify-center">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         className="accent-[#8ab4f8] rounded w-4 h-4"
                         checked={item.enabled}
                         onChange={(e) => updateFormDataItem(i, 'enabled', e.target.checked)}
                       />
                     </div>
-                    <input 
+                    <input
                       className="bg-[#1e1e20] border border-[#3c4043] rounded-lg px-3 py-2 text-[14px] outline-none focus:border-[#8ab4f8] text-[#e8eaed]"
                       placeholder="Name"
                       value={item.key}
                       onChange={(e) => updateFormDataItem(i, 'key', e.target.value)}
                     />
-                    <input 
+                    <input
                       className="bg-[#1e1e20] border border-[#3c4043] rounded-lg px-3 py-2 text-[14px] outline-none focus:border-[#8ab4f8] text-[#e8eaed]"
                       placeholder="Value"
                       value={item.value}
                       onChange={(e) => updateFormDataItem(i, 'value', e.target.value)}
                     />
-                    <button 
+                    <button
                       onClick={() => removeFormDataItem(i)}
                       className="opacity-0 group-hover:opacity-100 flex items-center justify-center text-[#5f6368] hover:text-[#f28b82] transition-opacity"
                     >
@@ -226,7 +226,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
                     </button>
                   </div>
                 ))}
-                <button 
+                <button
                   onClick={addFormDataItem}
                   className="mt-4 text-[12px] font-bold text-[#8ab4f8] hover:text-[#aecbfa] flex items-center gap-1 uppercase tracking-widest transition-colors"
                 >
@@ -237,7 +237,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
                 </button>
               </div>
             )}
-            
+
             <div className="mt-4 text-[11px] text-[#5f6368] uppercase font-bold tracking-widest text-center">
               Body Modality: {request.bodyType.replace('-', ' ')}
             </div>

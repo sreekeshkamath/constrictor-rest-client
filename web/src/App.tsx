@@ -26,7 +26,7 @@ const App: React.FC = () => {
         const res = await fetch(`${API_BASE}/workspace`);
         if (!res.ok) throw new Error('Failed to load workspace');
         const data = await res.json();
-        
+
         if (data.items && data.items.length > 0) {
           setItems(data.items);
           if (data.items[0].type === 'request') {
@@ -125,7 +125,7 @@ const App: React.FC = () => {
       }
 
       const data = await res.json();
-      
+
       if (data.error) {
         setError(data.error.message || 'Request failed');
       } else {
@@ -232,10 +232,10 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen w-full bg-[#131314] text-[#e8eaed] overflow-hidden font-sans">
-      <Sidebar 
-        items={items} 
-        activeId={activeId} 
-        onSelect={setActiveId} 
+      <Sidebar
+        items={items}
+        activeId={activeId}
+        onSelect={setActiveId}
         onCreateRequest={handleCreateRequest}
         onCreateFolder={handleCreateFolder}
         onDelete={handleDeleteItem}
@@ -250,18 +250,18 @@ const App: React.FC = () => {
         {activeItem ? (
           <>
             <div className="flex-[1.2] min-w-0 border-r border-[#3c4043] bg-[#131314]">
-              <RequestEditor 
-                request={activeItem} 
-                onUpdate={updateActiveRequest} 
+              <RequestEditor
+                request={activeItem}
+                onUpdate={updateActiveRequest}
                 onSend={handleSendRequest}
                 isLoading={isLoading}
               />
             </div>
             <div className="flex-1 min-w-0 bg-[#131314]">
-              <ResponseViewer 
-                response={response} 
-                isLoading={isLoading} 
-                error={error} 
+              <ResponseViewer
+                response={response}
+                isLoading={isLoading}
+                error={error}
               />
             </div>
           </>
@@ -276,10 +276,10 @@ const App: React.FC = () => {
       </main>
 
       {isSettingsOpen && (
-        <SettingsModal 
-          settings={settings} 
-          onUpdate={setSettings} 
-          onClose={() => setIsSettingsOpen(false)} 
+        <SettingsModal
+          settings={settings}
+          onUpdate={setSettings}
+          onClose={() => setIsSettingsOpen(false)}
         />
       )}
     </div>
