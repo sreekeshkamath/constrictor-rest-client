@@ -82,11 +82,20 @@ const App: React.FC = () => {
 
     const saveWorkspace = async () => {
       try {
-        await fetch(`${API_BASE}/workspace`, {
+        const res = await fetch(`${API_BASE}/workspace`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ version: 1, items })
         });
+        if (!res.ok) {
+          const errorText = await res.text();
+          let errorMessage = 'Failed to save workspace';
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.message || errorMessage;
+          } catch {}
+          throw new Error(`${errorMessage}: ${errorText}`);
+        }
       } catch (err) {
         console.error('Failed to save workspace:', err);
       }
