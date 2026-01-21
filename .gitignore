@@ -19,6 +19,8 @@ go.work
 dist/
 build/
 bin/
+wails/frontend/dist/
+wails/frontend/wailsjs/
 
 # Data
 data/
