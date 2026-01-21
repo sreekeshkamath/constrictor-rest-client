@@ -105,10 +105,12 @@ const App: React.FC = () => {
     return () => clearTimeout(timeoutId);
   }, [items]);
 
-  const activeItem = items.find(i => i.id === activeId) as RequestItem | undefined;
+  const activeItem = items.find(i => i.id === activeId);
 
   const updateActiveRequest = (updates: Partial<RequestItem>) => {
     if (!activeId) return;
+    const item = items.find(i => i.id === activeId);
+    if (!item || !isRequestItem(item)) return;
     setItems(prev => prev.map(item => item.id === activeId ? { ...item, ...updates } : item));
   };
 
