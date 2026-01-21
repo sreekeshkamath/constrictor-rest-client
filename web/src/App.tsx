@@ -292,7 +292,7 @@ const App: React.FC = () => {
       />
 
       <main className="flex flex-1 overflow-hidden">
-        {activeItem ? (
+        {activeItem && isRequestItem(activeItem) ? (
           <>
             <div className="flex-[1.2] min-w-0 border-r border-[#3c4043] bg-[#131314]">
               <RequestEditor
