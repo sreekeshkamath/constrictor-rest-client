@@ -227,7 +227,18 @@ const App: React.FC = () => {
 
   const handleMoveItem = (itemId: string, targetId: string | null) => {
     if (itemId === targetId) return;
-    setItems(prev => prev.map(item => item.id === itemId ? { ...item, parentId: targetId } : item));
+    const isDescendant = (descendantId: string, ancestorId: string, items: SidebarItem[]): boolean => {
+      let current: SidebarItem | undefined = items.find(i => i.id === descendantId);
+      while (current && current.parentId) {
+        if (current.parentId === ancestorId) return true;
+        current = items.find(i => i.id === current!.parentId);
+      }
+      return false;
+    };
+    setItems(prev => {
+      if (targetId !== null && isDescendant(targetId, itemId, prev)) return prev;
+      return prev.map(item => item.id === itemId ? { ...item, parentId: targetId } : item);
+    });
   };
 
   return (

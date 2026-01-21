@@ -32,9 +32,9 @@ npm run preview
 
 1. Start Go backend: `go run cmd/constrictor-rest-client/main.go`
 2. Start React dev server: `npm run dev`
-3. Open http://localhost:5173
+3. Open <http://localhost:5173>
 
-Vite proxy automatically forwards `/api/*` requests to `http://localhost:8080`.
+Vite proxy automatically forwards `/api/*` requests to <http://localhost:8080>.
 
 ## Architecture
 

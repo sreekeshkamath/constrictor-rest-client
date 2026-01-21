@@ -3,7 +3,7 @@
   "name": "constrictor-rest-client",
   "outputfilename": "constrictor-rest-client",
   "frontend": {
-    "dir": "frontend/dist",
+    "dir": "web/dist",
     "install": "",
     "build": "",
     "dev": "",

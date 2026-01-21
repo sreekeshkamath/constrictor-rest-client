@@ -5,7 +5,7 @@ This file tracks progress through the implementation plan. **After each complete
 ## Progress Entries
 
 ### Entry Template
-```
+```text
 ## [YYYY-MM-DD HH:MM] - Step Name
 
 **Completed:**

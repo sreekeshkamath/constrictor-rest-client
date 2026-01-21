@@ -22,9 +22,11 @@ bin/
 
 # Data
 data/
-*.json
+data/*.json
 !package.json
+!package-lock.json
 !tsconfig.json
+!tsconfig.node.json
 !wails.json
 
 # Dependencies

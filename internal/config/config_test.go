@@ -7,7 +7,8 @@ import (
 )
 
 func TestLoad(t *testing.T) {
-	// Test with default values
+	defer os.RemoveAll("data")
+
 	cfg := Load()
 	if cfg.Port != "8080" {
 		t.Errorf("Expected default port 8080, got %s", cfg.Port)
@@ -24,10 +25,8 @@ func TestLoad(t *testing.T) {
 }
 
 func TestLoadWithEnvVars(t *testing.T) {
-	os.Setenv("PORT", "9000")
-	os.Setenv("CONSTRICTOR_DATA_PATH", "/tmp/test-data")
-	defer os.Unsetenv("PORT")
-	defer os.Unsetenv("CONSTRICTOR_DATA_PATH")
+	t.Setenv("PORT", "9000")
+	t.Setenv("CONSTRICTOR_DATA_PATH", "/tmp/test-data")
 
 	cfg := Load()
 	if cfg.Port != "9000" {

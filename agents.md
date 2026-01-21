@@ -39,7 +39,7 @@ npm run dev
 
 1. Start Go server: `go run cmd/constrictor-rest-client/main.go`
 2. Start React dev server: `cd web && npm run dev`
-3. Open browser to http://localhost:5173
+3. Open browser to <http://localhost:5173>
 
 ## Architecture
 

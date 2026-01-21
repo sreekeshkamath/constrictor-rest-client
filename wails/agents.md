@@ -6,14 +6,14 @@ Wails desktop application packaging for Constrictor REST Client. Reuses the same
 
 ## Status
 
-**Not yet implemented** - This is a placeholder for future Wails integration.
+**Implemented** - Wails desktop application is available with bindings.
 
 ## Planned Structure
 
 ```
 wails/
-├── app.go              # Wails app entrypoint
-├── bindings.go         # Wails bindings (expose Go services to frontend)
+├── app.go              # Wails app entrypoint and bindings (GetWorkspace, SaveWorkspace, ExecuteRequest)
+├── main.go             # Wails entrypoint
 └── frontend/           # React UI (shared with web/ or symlinked)
 ```
 
