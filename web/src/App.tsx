@@ -210,18 +210,37 @@ const App: React.FC = () => {
       try {
         const content = event.target?.result as string;
         const parsed = JSON.parse(content);
+        let itemsToImport: any[] = [];
+
         if (Array.isArray(parsed)) {
-          if (confirm('Importing will overwrite your current workspace. Proceed?')) {
-            setItems(parsed);
-            setActiveId(null);
-            setResponse(null);
-          }
+          itemsToImport = parsed;
         } else if (parsed.items && Array.isArray(parsed.items)) {
-          if (confirm('Importing will overwrite your current workspace. Proceed?')) {
-            setItems(parsed.items);
-            setActiveId(null);
-            setResponse(null);
-          }
+          itemsToImport = parsed.items;
+        } else {
+          alert('Invalid workspace file: missing items array.');
+          return;
+        }
+
+        const isValidItem = (item: any): boolean => {
+          return (
+            item &&
+            typeof item.id === 'string' &&
+            typeof item.type === 'string' &&
+            typeof item.name === 'string' &&
+            typeof item.createdAt === 'number'
+          );
+        };
+
+        if (!itemsToImport.every(isValidItem)) {
+          console.error('Validation failed for imported items:', itemsToImport);
+          alert('Invalid workspace file: one or more items missing required properties (id, type, name, createdAt).');
+          return;
+        }
+
+        if (confirm('Importing will overwrite your current workspace. Proceed?')) {
+          setItems(itemsToImport);
+          setActiveId(null);
+          setResponse(null);
         }
       } catch (err) {
         alert('Invalid workspace file.');
