@@ -8,6 +8,10 @@ import { v4 as uuidv4 } from 'uuid';
 
 const API_BASE = '/api';
 
+const isRequestItem = (item: SidebarItem): item is RequestItem => {
+  return item.type === 'request';
+};
+
 const App: React.FC = () => {
   const [items, setItems] = useState<SidebarItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
