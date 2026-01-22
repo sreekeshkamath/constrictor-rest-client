@@ -20,6 +20,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settings, setSettings] = useState<AppSettings>({});
+  const [isSettingsLoaded, setIsSettingsLoaded] = useState(false);
 
   // Load settings from localStorage
   useEffect(() => {
@@ -31,12 +32,14 @@ const App: React.FC = () => {
         console.error('Failed to load settings:', e);
       }
     }
+    setIsSettingsLoaded(true);
   }, []);
 
   // Save settings to localStorage
   useEffect(() => {
+    if (!isSettingsLoaded) return;
     localStorage.setItem('constrictor_settings', JSON.stringify(settings));
-  }, [settings]);
+  }, [settings, isSettingsLoaded]);
 
   // Load workspace from backend
   useEffect(() => {
