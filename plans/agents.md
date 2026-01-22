@@ -15,7 +15,7 @@ For every new implementation plan, you **MUST** create a corresponding progress 
 - **Purpose**: Track step completion, document decisions, and enable handoff between agents
 
 **Progress File Structure**:
-```markdown
+````markdown
 # Progress: {Plan Name}
 
 This file tracks progress through the {PLAN_FILE}.md implementation plan. **After each completed step, append an entry below.**
@@ -61,7 +61,7 @@ This file tracks progress through the {PLAN_FILE}.md implementation plan. **Afte
 
 **Blockers/Notes:**
 - Any blockers, decisions, or notes
-```
+````
 
 ### Rule 2: Each Step Must Be Detailed
 

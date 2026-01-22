@@ -18,7 +18,7 @@ Implement the ability to import API collections from Insomnia YAML exports into 
 ## Architecture
 
 ### Directory Structure
-```
+```text
 data/
   workspace.json          # Workspace registry (v2 format)
   workspaces/
@@ -1541,7 +1541,7 @@ type InsomniaSettings struct {
 ## Files Summary
 
 ### Created Files
-```
+```text
 internal/import/
   models.go              # Insomnia format models
   service.go             # Import service facade
@@ -1557,7 +1557,7 @@ web/src/components/
 ```
 
 ### Modified Files
-```
+```text
 internal/
   domain/
     workspace.go         # Add metadata fields

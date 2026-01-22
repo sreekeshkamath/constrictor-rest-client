@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sync"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -55,6 +56,7 @@ type GoogleDriveService struct {
 	// OAuth2Config can be set for custom OAuth configuration
 	// If nil, uses default OAuth2 flow
 	states map[string]time.Time // state -> expiry
+	mu     sync.RWMutex         // protects states map
 }
 
 // NewService creates a new Google Drive service instance.
@@ -86,7 +88,9 @@ func (s *GoogleDriveService) Authenticate(ctx context.Context, clientID, clientS
 	state := hex.EncodeToString(stateBytes)
 
 	// Store state with TTL (5 minutes)
+	s.mu.Lock()
 	s.states[state] = time.Now().Add(5 * time.Minute)
+	s.mu.Unlock()
 
 	// Create OAuth2 config
 	config := &oauth2.Config{
@@ -127,11 +131,14 @@ func (s *GoogleDriveService) CompleteAuth(ctx context.Context, clientID, clientS
 	}
 
 	// Validate state
+	s.mu.Lock()
 	expiry, exists := s.states[state]
 	if !exists || time.Now().After(expiry) {
+		s.mu.Unlock()
 		return nil, fmt.Errorf("invalid or expired state")
 	}
 	delete(s.states, state) // single-use
+	s.mu.Unlock()
 
 	// Create OAuth2 config
 	config := &oauth2.Config{
