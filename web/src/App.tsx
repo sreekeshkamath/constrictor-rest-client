@@ -18,6 +18,24 @@ const App: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings>({
     gdrive: { enabled: false, apiKey: '', clientId: '' }
   });
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
+
+  // Load settings from localStorage
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('constrictor_settings');
+    if (savedSettings) {
+      try {
+        setSettings(JSON.parse(savedSettings));
+      } catch (e) {
+        console.error('Failed to load settings:', e);
+      }
+    }
+  }, []);
+
+  // Save settings to localStorage
+  useEffect(() => {
+    localStorage.setItem('constrictor_settings', JSON.stringify(settings));
+  }, [settings]);
 
   // Load workspace from backend
   useEffect(() => {
@@ -72,17 +90,51 @@ const App: React.FC = () => {
     loadWorkspace();
   }, []);
 
-  // Save workspace to backend when items change
+  // Save workspace to backend when items change, and sync to Google Drive if configured
   useEffect(() => {
     if (items.length === 0) return;
 
     const saveWorkspace = async () => {
       try {
+        // Save to local backend
         await fetch(`${API_BASE}/workspace`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ version: 1, items })
         });
+
+        // Auto-sync to Google Drive if configured
+        if (settings.gdrive.enabled && settings.gdrive.accessToken) {
+          setSyncStatus('syncing');
+          try {
+            const syncResponse = await fetch(`${API_BASE}/gdrive/backup`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                accessToken: settings.gdrive.accessToken,
+                filename: `constrictor-workspace-${new Date().toISOString().split('T')[0]}.json`,
+              }),
+            });
+
+            if (syncResponse.ok) {
+              setSyncStatus('synced');
+              // Update last sync time
+              setSettings(prev => ({
+                ...prev,
+                gdrive: { ...prev.gdrive, lastSync: Date.now().toString() }
+              }));
+              // Reset status after 3 seconds
+              setTimeout(() => setSyncStatus('idle'), 3000);
+            } else {
+              setSyncStatus('error');
+              setTimeout(() => setSyncStatus('idle'), 3000);
+            }
+          } catch (syncErr) {
+            console.error('Failed to sync to Google Drive:', syncErr);
+            setSyncStatus('error');
+            setTimeout(() => setSyncStatus('idle'), 3000);
+          }
+        }
       } catch (err) {
         console.error('Failed to save workspace:', err);
       }
@@ -90,7 +142,7 @@ const App: React.FC = () => {
 
     const timeoutId = setTimeout(saveWorkspace, 500); // Debounce
     return () => clearTimeout(timeoutId);
-  }, [items]);
+  }, [items, settings.gdrive.enabled, settings.gdrive.accessToken]);
 
   const activeItem = items.find(i => i.id === activeId) as RequestItem | undefined;
 
@@ -255,6 +307,8 @@ const App: React.FC = () => {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onExport={handleExportWorkspace}
         onImport={handleImportWorkspace}
+        gdriveEnabled={settings.gdrive.enabled && !!settings.gdrive.accessToken}
+        syncStatus={syncStatus}
       />
 
       <main className="flex flex-1 overflow-hidden">
