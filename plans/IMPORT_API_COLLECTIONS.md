@@ -296,7 +296,7 @@ type InsomniaSettings struct {
 3.1. Create the importmodels package structure
 3.2. Define all structs with appropriate YAML tags
 3.3. Add validation tags where applicable
-4.4. Handle optional fields with omitempty
+3.4. Handle optional fields with omitempty
 3.5. Test parsing with sample Insomnia YAML
 
 ---
@@ -604,7 +604,9 @@ func (i *InsomniaImporter) processItem(
                 stats.Requests++
                 stats.TotalItems++
                 stats.Headers += len(item.Headers)
-                stats.BodySize += len(item.Body)
+                if item.Body != nil {
+                    stats.BodySize += len(*item.Body)
+                }
             } else if item.Type == "folder" {
                 stats.Folders++
                 stats.TotalItems++
@@ -852,15 +854,78 @@ func (i *InsomniaImporter) processItem(
     }
     ```
 
-6.9. Update router to add new routes:
+6.9. Implement HandleUploadFile for multipart file uploads:
+    ```go
+    import (
+        "io"
+        "mime/multipart"
+        "net/http"
+        "os"
+        "path/filepath"
+    )
+
+    const (
+        maxFileSize      = 10 * 1024 * 1024 // 10MB
+        allowedExtension = ".yaml"
+    )
+
+    func (h *Handlers) HandleUploadFile(w http.ResponseWriter, r *http.Request) {
+        // Parse multipart form with size limit
+        if err := r.ParseMultipartForm(maxFileSize); err != nil {
+            respondError(w, http.StatusBadRequest, "file too large or invalid", err.Error())
+            return
+        }
+
+        // Get the file from the form
+        file, header, err := r.FormFile("file")
+        if err != nil {
+            respondError(w, http.StatusBadRequest, "no file uploaded", err.Error())
+            return
+        }
+        defer file.Close()
+
+        // Validate file extension
+        ext := filepath.Ext(header.Filename)
+        if ext != allowedExtension {
+            respondError(w, http.StatusBadRequest, "invalid file type", "only .yaml files are allowed")
+            return
+        }
+
+        // Create temp file path
+        tempDir := os.TempDir()
+        tempFilePath := filepath.Join(tempDir, "import-"+header.Filename)
+
+        // Create destination file
+        dest, err := os.Create(tempFilePath)
+        if err != nil {
+            respondError(w, http.StatusInternalServerError, "failed to create temp file", err.Error())
+            return
+        }
+        defer dest.Close()
+
+        // Copy uploaded file to destination
+        if _, err := io.Copy(dest, file); err != nil {
+            respondError(w, http.StatusInternalServerError, "failed to save file", err.Error())
+            return
+        }
+
+        log.Printf("Uploaded file saved to: %s", tempFilePath)
+
+        respondJSON(w, http.StatusOK, map[string]string{
+            "filePath": tempFilePath,
+        })
+    }
+    ```
+
+6.10. Update router to add new routes:
     ```go
     func SetupRoutes(router *mux.Router, handlers *Handlers) {
         api := router.PathPrefix("/api").Subrouter()
-        
+
         // Existing routes...
         api.HandleFunc("/workspace", handlers.HandleGetWorkspace).Methods("GET")
         api.HandleFunc("/workspace", handlers.HandlePutWorkspace).Methods("PUT")
-        
+
         // Workspace management routes
         api.HandleFunc("/workspaces", handlers.HandleListWorkspaces).Methods("GET")
         api.HandleFunc("/workspaces", handlers.HandleCreateWorkspace).Methods("POST")
@@ -868,7 +933,10 @@ func (i *InsomniaImporter) processItem(
         api.HandleFunc("/workspaces/{id}/activate", handlers.HandleActivateWorkspace).Methods("POST")
         api.HandleFunc("/workspaces/{id}/rename", handlers.HandleRenameWorkspace).Methods("PUT")
         api.HandleFunc("/workspaces/{id}", handlers.HandleDeleteWorkspace).Methods("DELETE")
-        
+
+        // File upload route
+        api.HandleFunc("/upload", handlers.HandleUploadFile).Methods("POST")
+
         // Import route
         api.HandleFunc("/import/insomnia", handlers.HandleImportInsomnia).Methods("POST")
     }
@@ -1374,17 +1442,15 @@ func (i *InsomniaImporter) processItem(
     const switchWorkspace = async (id: string) => {
       try {
         // Save current workspace first
-        if (items.length > 0) {
-          await saveWorkspace();
-        }
-        
+        await saveWorkspace();
+
         // Switch to new workspace
         const res = await fetch(`/api/workspaces/${id}/activate`, {
           method: 'POST',
         });
-        
+
         if (!res.ok) throw new Error('Failed to switch workspace');
-        
+
         // Reload workspace data
         await loadWorkspace();
         await loadWorkspaces();
