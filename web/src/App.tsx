@@ -8,6 +8,10 @@ import { v4 as uuidv4 } from 'uuid';
 
 const API_BASE = '/api';
 
+const isRequestItem = (item: SidebarItem): item is RequestItem => {
+  return item.type === 'request';
+};
+
 const App: React.FC = () => {
   const [items, setItems] = useState<SidebarItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -97,11 +101,21 @@ const App: React.FC = () => {
     const saveWorkspace = async () => {
       try {
         // Save to local backend
-        await fetch(`${API_BASE}/workspace`, {
+        const res = await fetch(`${API_BASE}/workspace`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ version: 1, items })
         });
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          let errorMessage = 'Failed to save workspace';
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.message || errorMessage;
+          } catch {}
+          throw new Error(`${errorMessage}: ${errorText}`);
+        }
 
         // Auto-sync to Google Drive if configured
         if (settings.gdrive.enabled && settings.gdrive.accessToken) {
@@ -144,10 +158,12 @@ const App: React.FC = () => {
     return () => clearTimeout(timeoutId);
   }, [items, settings.gdrive.enabled, settings.gdrive.accessToken]);
 
-  const activeItem = items.find(i => i.id === activeId) as RequestItem | undefined;
+  const activeItem = items.find(i => i.id === activeId);
 
   const updateActiveRequest = (updates: Partial<RequestItem>) => {
     if (!activeId) return;
+    const item = items.find(i => i.id === activeId);
+    if (!item || !isRequestItem(item)) return;
     setItems(prev => prev.map(item => item.id === activeId ? { ...item, ...updates } : item));
   };
 
@@ -247,18 +263,37 @@ const App: React.FC = () => {
       try {
         const content = event.target?.result as string;
         const parsed = JSON.parse(content);
+        let itemsToImport: any[] = [];
+
         if (Array.isArray(parsed)) {
-          if (confirm('Importing will overwrite your current workspace. Proceed?')) {
-            setItems(parsed);
-            setActiveId(null);
-            setResponse(null);
-          }
+          itemsToImport = parsed;
         } else if (parsed.items && Array.isArray(parsed.items)) {
-          if (confirm('Importing will overwrite your current workspace. Proceed?')) {
-            setItems(parsed.items);
-            setActiveId(null);
-            setResponse(null);
-          }
+          itemsToImport = parsed.items;
+        } else {
+          alert('Invalid workspace file: missing items array.');
+          return;
+        }
+
+        const isValidItem = (item: any): boolean => {
+          return (
+            item &&
+            typeof item.id === 'string' &&
+            typeof item.type === 'string' &&
+            typeof item.name === 'string' &&
+            typeof item.createdAt === 'number'
+          );
+        };
+
+        if (!itemsToImport.every(isValidItem)) {
+          console.error('Validation failed for imported items:', itemsToImport);
+          alert('Invalid workspace file: one or more items missing required properties (id, type, name, createdAt).');
+          return;
+        }
+
+        if (confirm('Importing will overwrite your current workspace. Proceed?')) {
+          setItems(itemsToImport);
+          setActiveId(null);
+          setResponse(null);
         }
       } catch (err) {
         alert('Invalid workspace file.');
@@ -312,7 +347,7 @@ const App: React.FC = () => {
       />
 
       <main className="flex flex-1 overflow-hidden">
-        {activeItem ? (
+        {activeItem && isRequestItem(activeItem) ? (
           <>
             <div className="flex-[1.2] min-w-0 border-r border-[#3c4043] bg-[#131314]">
               <RequestEditor
