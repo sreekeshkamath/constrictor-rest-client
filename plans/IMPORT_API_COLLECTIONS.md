@@ -224,7 +224,7 @@ type InsomniaMeta struct {
 type InsomniaItem struct {
     Name     string               `yaml:"name"`
     Meta     InsomniaItemMeta     `yaml:"meta"`
-    Children []InsomniaRequest    `yaml:"children,omitempty"` // Folder has children
+    Children []InsomniaItem       `yaml:"children,omitempty"` // Folder has children
     URL      string               `yaml:"url,omitempty"`      // Request has URL
     Method   string               `yaml:"method,omitempty"`
     Body     InsomniaBody         `yaml:"body,omitempty"`
@@ -387,6 +387,15 @@ func (i *InsomniaImporter) processItem(
         req importmodels.InsomniaItem,
         parentID *string,
     ) domain.WorkspaceItem {
+        // Convert regular headers
+        headers := i.convertHeaders(req.Headers)
+
+        // Convert auth headers and merge (auth headers take precedence)
+        authHeaders := i.convertAuth(req.Authentication)
+        if len(authHeaders) > 0 {
+            headers = append(authHeaders, headers...)
+        }
+
         item := domain.WorkspaceItem{
             ID:        generateUUIDFromMeta(req.Meta.ID),
             Name:      req.Name,
@@ -395,7 +404,7 @@ func (i *InsomniaImporter) processItem(
             CreatedAt: req.Meta.Created,
             Method:    &req.Method,
             URL:       &req.URL,
-            Headers:   i.convertHeaders(req.Headers),
+            Headers:   headers,
             BodyType:  i.mapBodyType(req.Body.MIMEType),
             Body:      i.getBodyText(req.Body),
             FormData:  i.convertFormData(req.Body.Params),
@@ -450,7 +459,11 @@ func (i *InsomniaImporter) processItem(
                 },
             }
         case "apikey":
-            // Typically stored as X-API-Key header
+            // Note: API key authentication headers vary by API.
+            // Using "X-API-Key" as a common default - you may need to adjust this
+            // based on your target API (e.g., "Authorization: Bearer <token>",
+            // "X-DreamFactory-Api-Key", "Api-Key", etc.).
+            // Verify and update the header name after import if needed.
             return []domain.Header{
                 {
                     Key:     "X-API-Key",
@@ -862,6 +875,7 @@ func (i *InsomniaImporter) processItem(
         "net/http"
         "os"
         "path/filepath"
+        "time"
     )
 
     const (
@@ -914,6 +928,16 @@ func (i *InsomniaImporter) processItem(
         respondJSON(w, http.StatusOK, map[string]string{
             "filePath": tempFilePath,
         })
+
+        // Schedule cleanup of temp file after response is sent
+        go func() {
+            time.Sleep(5 * time.Minute) // Give time for import to complete
+            if err := os.Remove(tempFilePath); err != nil {
+                log.Printf("Failed to remove temp file %s: %v", tempFilePath, err)
+            } else {
+                log.Printf("Temp file cleaned up: %s", tempFilePath)
+            }
+        }()
     }
     ```
 
@@ -922,8 +946,8 @@ func (i *InsomniaImporter) processItem(
     func SetupRoutes(router *mux.Router, handlers *Handlers) {
         api := router.PathPrefix("/api").Subrouter()
 
-        // Existing routes...
-        api.HandleFunc("/workspace", handlers.HandleGetWorkspace).Methods("GET")
+        // Current workspace endpoints
+        api.HandleFunc("/workspace", handlers.HandleGetCurrentWorkspace).Methods("GET")
         api.HandleFunc("/workspace", handlers.HandlePutWorkspace).Methods("PUT")
 
         // Workspace management routes
@@ -939,6 +963,19 @@ func (i *InsomniaImporter) processItem(
 
         // Import route
         api.HandleFunc("/import/insomnia", handlers.HandleImportInsomnia).Methods("POST")
+    }
+    ```
+
+6.11. Implement HandleGetCurrentWorkspace:
+    ```go
+    func (h *Handlers) HandleGetCurrentWorkspace(w http.ResponseWriter, r *http.Request) {
+        workspace, err := h.store.Load()
+        if err != nil {
+            respondError(w, http.StatusInternalServerError, "failed to load workspace", err.Error())
+            return
+        }
+
+        respondJSON(w, http.StatusOK, workspace)
     }
     ```
 
@@ -1473,18 +1510,18 @@ func (i *InsomniaImporter) processItem(
     ```tsx
     const saveWorkspace = async () => {
       if (!activeWorkspaceId) return;
-      
+
       try {
         const workspace = buildWorkspaceFromItems();
-        const res = await fetch('/api/workspaces', {
-          method: 'POST',
+        const res = await fetch('/api/workspace', {
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             id: activeWorkspaceId,
             workspace,
           }),
         });
-        
+
         if (!res.ok) throw new Error('Failed to save workspace');
       } catch (err) {
         console.error('Failed to save workspace:', err);
