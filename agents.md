@@ -43,7 +43,7 @@ chmod +x run.sh
 
 ### Individual Servers
 
-**Backend (Go)**
+### Backend (Go)
 ```bash
 # Run tests
 go test ./...
@@ -54,7 +54,7 @@ go run cmd/constrictor-rest-client/main.go
 # Server runs on http://localhost:8080 by default
 ```
 
-**Frontend (React)**
+### Frontend (React)
 ```bash
 cd web
 npm install
