@@ -7,7 +7,7 @@
     "dev:backend": "go run cmd/constrictor-rest-client/main.go",
     "dev:frontend": "cd web && npm run dev",
     "dev:frontend:wait": "sleep 3 && cd web && npm run dev",
-    "install:all": "go mod tidy && cd web && npm install",
+    "install:all": "npm install && go mod tidy && cd web && npm install",
     "test": "go test ./...",
     "build": "cd web && npm run build"
   },
