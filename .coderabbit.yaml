@@ -1,5 +1,6 @@
 # CodeRabbit Configuration
 # Exclude plans folder from CodeRabbit scanning
 
-ignore:
-  - "plans/**"
+reviews:
+  path_filters:
+    - "!plans/**"
