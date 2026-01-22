@@ -14,7 +14,7 @@ Constrictor REST Client is a REST API testing tool with a Go backend and React f
 
 ### Quick Start (Recommended)
 
-**Option 1: Using npm (requires root package.json setup)**
+### Option 1: Using npm (requires root package.json setup)
 ```bash
 # Install root dependencies first
 npm install
@@ -23,7 +23,7 @@ npm install
 npm run dev
 ```
 
-**Option 2: Using Make**
+### Option 2: Using Make
 ```bash
 # Install all dependencies first
 make install
@@ -32,7 +32,7 @@ make install
 make dev
 ```
 
-**Option 3: Using shell script**
+### Option 3: Using shell script
 ```bash
 # Make script executable (first time only)
 chmod +x run.sh
