@@ -50,7 +50,8 @@ export interface GDriveSettings {
   enabled: boolean;
   apiKey: string;
   clientId: string;
-  lastSync?: number;
+  accessToken?: string;
+  lastSync?: string;
 }
 
 export interface AppSettings {
