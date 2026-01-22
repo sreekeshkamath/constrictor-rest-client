@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Check if backend is running
-if curl -s http://localhost:8080/api/health > /dev/null 2>&1; then
+if curl --fail --max-time 10 --connect-timeout 5 -s http://localhost:8080/api/health > /dev/null 2>&1; then
     echo "✅ Backend is running"
     exit 0
 else
