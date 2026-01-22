@@ -19,10 +19,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [settings, setSettings] = useState<AppSettings>({
-    gdrive: { enabled: false, apiKey: '', clientId: '' }
-  });
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
+  const [settings, setSettings] = useState<AppSettings>({});
 
   // Load settings from localStorage
   useEffect(() => {
@@ -50,9 +47,24 @@ const App: React.FC = () => {
         const data = await res.json();
 
         if (data.items && data.items.length > 0) {
-          setItems(data.items);
-          if (data.items[0].type === 'request') {
-            setActiveId(data.items[0].id);
+          // Normalize items to ensure all required fields are present
+          const normalizedItems = data.items.map((item: any) => {
+            if (item.type === 'request') {
+              return {
+                ...item,
+                headers: item.headers || [],
+                formData: item.formData || [],
+                body: item.body || '',
+                bodyType: item.bodyType || 'none',
+                method: item.method || 'GET',
+                url: item.url || '',
+              };
+            }
+            return item;
+          });
+          setItems(normalizedItems);
+          if (normalizedItems[0].type === 'request') {
+            setActiveId(normalizedItems[0].id);
           }
         } else {
           // Create default request
@@ -94,7 +106,7 @@ const App: React.FC = () => {
     loadWorkspace();
   }, []);
 
-  // Save workspace to backend when items change, and sync to Google Drive if configured
+  // Save workspace to backend when items change
   useEffect(() => {
     if (items.length === 0) return;
 
@@ -116,39 +128,6 @@ const App: React.FC = () => {
           } catch {}
           throw new Error(`${errorMessage}: ${errorText}`);
         }
-
-        // Auto-sync to Google Drive if configured
-        if (settings.gdrive.enabled && settings.gdrive.accessToken) {
-          setSyncStatus('syncing');
-          try {
-            const syncResponse = await fetch(`${API_BASE}/gdrive/backup`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                accessToken: settings.gdrive.accessToken,
-                filename: `constrictor-workspace-${new Date().toISOString().split('T')[0]}.json`,
-              }),
-            });
-
-            if (syncResponse.ok) {
-              setSyncStatus('synced');
-              // Update last sync time
-              setSettings(prev => ({
-                ...prev,
-                gdrive: { ...prev.gdrive, lastSync: Date.now().toString() }
-              }));
-              // Reset status after 3 seconds
-              setTimeout(() => setSyncStatus('idle'), 3000);
-            } else {
-              setSyncStatus('error');
-              setTimeout(() => setSyncStatus('idle'), 3000);
-            }
-          } catch (syncErr) {
-            console.error('Failed to sync to Google Drive:', syncErr);
-            setSyncStatus('error');
-            setTimeout(() => setSyncStatus('idle'), 3000);
-          }
-        }
       } catch (err) {
         console.error('Failed to save workspace:', err);
       }
@@ -156,7 +135,7 @@ const App: React.FC = () => {
 
     const timeoutId = setTimeout(saveWorkspace, 500); // Debounce
     return () => clearTimeout(timeoutId);
-  }, [items, settings.gdrive.enabled, settings.gdrive.accessToken]);
+  }, [items]);
 
   const activeItem = items.find(i => i.id === activeId);
 
@@ -290,10 +269,10 @@ const App: React.FC = () => {
           return;
         }
 
-        if (confirm('Importing will overwrite your current workspace. Proceed?')) {
+          if (confirm('Importing will overwrite your current workspace. Proceed?')) {
           setItems(itemsToImport);
-          setActiveId(null);
-          setResponse(null);
+            setActiveId(null);
+            setResponse(null);
         }
       } catch (err) {
         alert('Invalid workspace file.');
@@ -342,8 +321,6 @@ const App: React.FC = () => {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onExport={handleExportWorkspace}
         onImport={handleImportWorkspace}
-        gdriveEnabled={settings.gdrive.enabled && !!settings.gdrive.accessToken}
-        syncStatus={syncStatus}
       />
 
       <main className="flex flex-1 overflow-hidden">

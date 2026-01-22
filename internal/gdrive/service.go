@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"strconv"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -21,12 +20,13 @@ import (
 type Service interface {
 	// Authenticate initiates the OAuth flow and returns an authorization URL.
 	// The user should visit this URL to grant permissions, then call CompleteAuth
-	// with the authorization code.
-	Authenticate(ctx context.Context, clientID, clientSecret string) (authURL string, err error)
+	// with the authorization code. Uses client ID and client secret for server-side OAuth.
+	Authenticate(ctx context.Context, clientID, clientSecret, redirectURI string) (authURL string, err error)
 
 	// CompleteAuth completes the OAuth flow using the authorization code.
-	// It returns an access token that can be used for subsequent API calls.
-	CompleteAuth(ctx context.Context, clientID, clientSecret, authCode string) (accessToken string, err error)
+	// It exchanges the authorization code for an access token using client ID and client secret.
+	// Returns the access token that can be used for subsequent API calls.
+	CompleteAuth(ctx context.Context, clientID, clientSecret, redirectURI, authCode string) (accessToken string, err error)
 
 	// BackupWorkspace uploads a sanitized version of the workspace to Google Drive.
 	// The workspace is automatically sanitized to remove all sensitive headers and form data
@@ -59,36 +59,73 @@ func NewService() Service {
 	return &GoogleDriveService{}
 }
 
-// Authenticate generates an OAuth authorization URL.
-// For a full implementation, this would use oauth2.Config, but for now
-// we'll return a URL that the frontend can use with the Google OAuth library.
-func (s *GoogleDriveService) Authenticate(ctx context.Context, clientID, clientSecret string) (string, error) {
+// Authenticate generates an OAuth authorization URL using client ID and client secret.
+// This uses server-side OAuth flow where the backend exchanges the authorization code for tokens.
+func (s *GoogleDriveService) Authenticate(ctx context.Context, clientID, clientSecret, redirectURI string) (string, error) {
 	if clientID == "" {
 		return "", fmt.Errorf("client ID is required")
 	}
+	if clientSecret == "" {
+		return "", fmt.Errorf("client secret is required")
+	}
+	if redirectURI == "" {
+		redirectURI = "http://localhost:8080/api/gdrive/callback"
+	}
 
-	// Return OAuth URL for frontend to handle
-	// The frontend will use Google's OAuth2 library to get the authorization code
-	// This is a simplified approach - in production, you might want server-side OAuth
-	redirectURI := "http://localhost:8080/api/gdrive/callback"
-	scope := "https://www.googleapis.com/auth/drive.file"
-	authURL := fmt.Sprintf(
-		"https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&redirect_uri=%s&response_type=code&scope=%s&access_type=offline&prompt=consent",
-		clientID,
-		redirectURI,
-		scope,
-	)
+	// Create OAuth2 config
+	config := &oauth2.Config{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		RedirectURL:  redirectURI,
+		Scopes:       []string{"https://www.googleapis.com/auth/drive.file"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  "https://accounts.google.com/o/oauth2/v2/auth",
+			TokenURL: "https://oauth2.googleapis.com/token",
+		},
+	}
+
+	// Generate authorization URL with state for security
+	authURL := config.AuthCodeURL("state", oauth2.AccessTypeOffline, oauth2.ApprovalForce)
 
 	return authURL, nil
 }
 
-// CompleteAuth exchanges the authorization code for an access token.
-// In a production implementation, this would use oauth2.Config.Exchange.
-func (s *GoogleDriveService) CompleteAuth(ctx context.Context, clientID, clientSecret, authCode string) (string, error) {
-	// This is a placeholder - in production, you'd exchange the code for tokens
-	// For now, we'll expect the frontend to handle OAuth and pass the access token directly
-	// This keeps the implementation simpler and more secure (tokens never touch the server)
-	return "", fmt.Errorf("OAuth code exchange should be handled by frontend - pass access token directly")
+// CompleteAuth exchanges the authorization code for an access token using client ID and client secret.
+// This implements server-side OAuth flow where the backend securely exchanges the code for tokens.
+func (s *GoogleDriveService) CompleteAuth(ctx context.Context, clientID, clientSecret, redirectURI, authCode string) (string, error) {
+	if clientID == "" {
+		return "", fmt.Errorf("client ID is required")
+	}
+	if clientSecret == "" {
+		return "", fmt.Errorf("client secret is required")
+	}
+	if authCode == "" {
+		return "", fmt.Errorf("authorization code is required")
+	}
+	if redirectURI == "" {
+		redirectURI = "http://localhost:8080/api/gdrive/callback"
+	}
+
+	// Create OAuth2 config
+	config := &oauth2.Config{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		RedirectURL:  redirectURI,
+		Scopes:       []string{"https://www.googleapis.com/auth/drive.file"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  "https://accounts.google.com/o/oauth2/v2/auth",
+			TokenURL: "https://oauth2.googleapis.com/token",
+		},
+	}
+
+	// Exchange authorization code for token
+	token, err := config.Exchange(ctx, authCode)
+	if err != nil {
+		return "", fmt.Errorf("failed to exchange authorization code: %w", err)
+	}
+
+	// Return the access token
+	return token.AccessToken, nil
 }
 
 // BackupWorkspace uploads a sanitized workspace to Google Drive.
@@ -173,12 +210,8 @@ func (s *GoogleDriveService) ListBackups(ctx context.Context, accessToken string
 				createdTime = parsed
 			}
 		}
-		size := int64(0)
-		if file.Size != "" {
-			if parsed, err := strconv.ParseInt(file.Size, 10, 64); err == nil {
-				size = parsed
-			}
-		}
+		// file.Size is already int64 in Google Drive API v3
+		size := file.Size
 		backups = append(backups, BackupFile{
 			ID:          file.Id,
 			Name:        file.Name,

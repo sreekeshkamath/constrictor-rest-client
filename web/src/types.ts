@@ -46,14 +46,6 @@ export interface ResponseData {
   size: number;
 }
 
-export interface GDriveSettings {
-  enabled: boolean;
-  apiKey: string;
-  clientId: string;
-  accessToken?: string;
-  lastSync?: string;
-}
-
 export interface AppSettings {
-  gdrive: GDriveSettings;
+  // Reserved for future settings
 }
