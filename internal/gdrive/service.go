@@ -3,6 +3,8 @@ package gdrive
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,17 +23,17 @@ type Service interface {
 	// Authenticate initiates the OAuth flow and returns an authorization URL.
 	// The user should visit this URL to grant permissions, then call CompleteAuth
 	// with the authorization code. Uses client ID and client secret for server-side OAuth.
-	Authenticate(ctx context.Context, clientID, clientSecret, redirectURI string) (authURL string, err error)
+	Authenticate(ctx context.Context, clientID, clientSecret, redirectURI string) (authURL string, state string, err error)
 
 	// CompleteAuth completes the OAuth flow using the authorization code.
 	// It exchanges the authorization code for an access token using client ID and client secret.
-	// Returns the access token that can be used for subsequent API calls.
-	CompleteAuth(ctx context.Context, clientID, clientSecret, redirectURI, authCode string) (accessToken string, err error)
+	// Returns the oauth2.Token that can be used for subsequent API calls.
+	CompleteAuth(ctx context.Context, clientID, clientSecret, redirectURI, authCode, state string) (token *oauth2.Token, err error)
 
 	// BackupWorkspace uploads a sanitized version of the workspace to Google Drive.
 	// The workspace is automatically sanitized to remove all sensitive headers and form data
 	// before upload. Returns the file ID of the uploaded file.
-	BackupWorkspace(ctx context.Context, accessToken string, workspace *domain.Workspace, filename string) (fileID string, err error)
+	BackupWorkspace(ctx context.Context, token *oauth2.Token, workspace *domain.Workspace, filename string) (fileID string, err error)
 
 	// ListBackups lists all workspace backup files in Google Drive.
 	ListBackups(ctx context.Context, accessToken string) ([]BackupFile, error)
@@ -52,25 +54,39 @@ type BackupFile struct {
 type GoogleDriveService struct {
 	// OAuth2Config can be set for custom OAuth configuration
 	// If nil, uses default OAuth2 flow
+	states map[string]time.Time // state -> expiry
 }
 
 // NewService creates a new Google Drive service instance.
 func NewService() Service {
-	return &GoogleDriveService{}
+	return &GoogleDriveService{
+		states: make(map[string]time.Time),
+	}
 }
 
 // Authenticate generates an OAuth authorization URL using client ID and client secret.
-// This uses server-side OAuth flow where the backend exchanges the authorization code for tokens.
-func (s *GoogleDriveService) Authenticate(ctx context.Context, clientID, clientSecret, redirectURI string) (string, error) {
+// It implements server-side OAuth flow for Google Drive API access.
+// Returns the authorization URL and the state parameter for CSRF protection.
+func (s *GoogleDriveService) Authenticate(ctx context.Context, clientID, clientSecret, redirectURI string) (string, string, error) {
 	if clientID == "" {
-		return "", fmt.Errorf("client ID is required")
+		return "", "", fmt.Errorf("client ID is required")
 	}
 	if clientSecret == "" {
-		return "", fmt.Errorf("client secret is required")
+		return "", "", fmt.Errorf("client secret is required")
 	}
 	if redirectURI == "" {
 		redirectURI = "http://localhost:8080/api/gdrive/callback"
 	}
+
+	// Generate cryptographically secure random state
+	stateBytes := make([]byte, 32)
+	if _, err := rand.Read(stateBytes); err != nil {
+		return "", "", fmt.Errorf("failed to generate random state: %w", err)
+	}
+	state := hex.EncodeToString(stateBytes)
+
+	// Store state with TTL (5 minutes)
+	s.states[state] = time.Now().Add(5 * time.Minute)
 
 	// Create OAuth2 config
 	config := &oauth2.Config{
@@ -85,26 +101,37 @@ func (s *GoogleDriveService) Authenticate(ctx context.Context, clientID, clientS
 	}
 
 	// Generate authorization URL with state for security
-	authURL := config.AuthCodeURL("state", oauth2.AccessTypeOffline, oauth2.ApprovalForce)
+	authURL := config.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.ApprovalForce)
 
-	return authURL, nil
+	return authURL, state, nil
 }
 
 // CompleteAuth exchanges the authorization code for an access token using client ID and client secret.
 // This implements server-side OAuth flow where the backend securely exchanges the code for tokens.
-func (s *GoogleDriveService) CompleteAuth(ctx context.Context, clientID, clientSecret, redirectURI, authCode string) (string, error) {
+// Validates the state parameter for CSRF protection.
+func (s *GoogleDriveService) CompleteAuth(ctx context.Context, clientID, clientSecret, redirectURI, authCode, state string) (*oauth2.Token, error) {
 	if clientID == "" {
-		return "", fmt.Errorf("client ID is required")
+		return nil, fmt.Errorf("client ID is required")
 	}
 	if clientSecret == "" {
-		return "", fmt.Errorf("client secret is required")
+		return nil, fmt.Errorf("client secret is required")
 	}
 	if authCode == "" {
-		return "", fmt.Errorf("authorization code is required")
+		return nil, fmt.Errorf("authorization code is required")
+	}
+	if state == "" {
+		return nil, fmt.Errorf("state is required")
 	}
 	if redirectURI == "" {
 		redirectURI = "http://localhost:8080/api/gdrive/callback"
 	}
+
+	// Validate state
+	expiry, exists := s.states[state]
+	if !exists || time.Now().After(expiry) {
+		return nil, fmt.Errorf("invalid or expired state")
+	}
+	delete(s.states, state) // single-use
 
 	// Create OAuth2 config
 	config := &oauth2.Config{
@@ -121,17 +148,17 @@ func (s *GoogleDriveService) CompleteAuth(ctx context.Context, clientID, clientS
 	// Exchange authorization code for token
 	token, err := config.Exchange(ctx, authCode)
 	if err != nil {
-		return "", fmt.Errorf("failed to exchange authorization code: %w", err)
+		return nil, fmt.Errorf("failed to exchange authorization code: %w", err)
 	}
 
-	// Return the access token
-	return token.AccessToken, nil
+	// Return the full token
+	return token, nil
 }
 
 // BackupWorkspace uploads a sanitized workspace to Google Drive.
-func (s *GoogleDriveService) BackupWorkspace(ctx context.Context, accessToken string, workspace *domain.Workspace, filename string) (string, error) {
-	if accessToken == "" {
-		return "", fmt.Errorf("access token is required")
+func (s *GoogleDriveService) BackupWorkspace(ctx context.Context, token *oauth2.Token, workspace *domain.Workspace, filename string) (string, error) {
+	if token == nil || token.AccessToken == "" {
+		return "", fmt.Errorf("token is required")
 	}
 	if workspace == nil {
 		return "", fmt.Errorf("workspace is required")
@@ -149,9 +176,9 @@ func (s *GoogleDriveService) BackupWorkspace(ctx context.Context, accessToken st
 		return "", fmt.Errorf("failed to marshal workspace: %w", err)
 	}
 
-	// Create Drive service with access token
+	// Create Drive service with token source
 	service, err := drive.NewService(ctx, option.WithTokenSource(
-		&staticTokenSource{token: accessToken},
+		oauth2.ReuseTokenSource(token, nil),
 	))
 	if err != nil {
 		return "", fmt.Errorf("failed to create Drive service: %w", err)
@@ -204,7 +231,7 @@ func (s *GoogleDriveService) ListBackups(ctx context.Context, accessToken string
 
 	backups := make([]BackupFile, 0, len(files.Files))
 	for _, file := range files.Files {
-		createdTime := time.Now()
+		var createdTime time.Time
 		if file.CreatedTime != "" {
 			if parsed, err := time.Parse(time.RFC3339, file.CreatedTime); err == nil {
 				createdTime = parsed
