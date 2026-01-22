@@ -12,8 +12,38 @@ Constrictor REST Client is a REST API testing tool with a Go backend and React f
 
 ## How to Run
 
-### Backend (Go)
+### Quick Start (Recommended)
 
+**Option 1: Using npm (requires root package.json setup)**
+```bash
+# Install root dependencies first
+npm install
+
+# Run both backend and frontend
+npm run dev
+```
+
+**Option 2: Using Make**
+```bash
+# Install all dependencies first
+make install
+
+# Run both servers
+make dev
+```
+
+**Option 3: Using shell script**
+```bash
+# Make script executable (first time only)
+chmod +x run.sh
+
+# Run both servers
+./run.sh
+```
+
+### Individual Servers
+
+**Backend (Go)**
 ```bash
 # Run tests
 go test ./...
@@ -24,8 +54,7 @@ go run cmd/constrictor-rest-client/main.go
 # Server runs on http://localhost:8080 by default
 ```
 
-### Frontend (React)
-
+**Frontend (React)**
 ```bash
 cd web
 npm install
@@ -35,7 +64,7 @@ npm run dev
 # API requests are proxied to http://localhost:8080
 ```
 
-### Full Stack
+### Full Stack (Manual)
 
 1. Start Go server: `go run cmd/constrictor-rest-client/main.go`
 2. Start React dev server: `cd web && npm run dev`

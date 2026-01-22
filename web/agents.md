@@ -30,6 +30,17 @@ npm run preview
 
 ## Development Setup
 
+**Quick Start (from project root):**
+```bash
+# Run both backend and frontend with one command
+npm run dev
+# or
+make dev
+# or
+./run.sh
+```
+
+**Manual Setup:**
 1. Start Go backend: `go run cmd/constrictor-rest-client/main.go`
 2. Start React dev server: `npm run dev`
 3. Open <http://localhost:5173>
