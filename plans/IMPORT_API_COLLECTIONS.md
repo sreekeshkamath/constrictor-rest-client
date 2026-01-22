@@ -334,33 +334,33 @@ type InsomniaSettings struct {
     ```
 
 4.3. Implement Convert method with recursive folder processing:
-    ```go
-    func (i *InsomniaImporter) Convert(insomnia *importmodels.InsomniaCollection) (*domain.Workspace, error) {
-        workspace := &domain.Workspace{
-            Version: 2,
-            Items:   make([]domain.WorkspaceItem, 0),
-        }
-        
-        // Process collection recursively
-        for _, item := range insomnia.Collection {
-            i.processItem(item, nil, workspace)
-        }
-        
-        return workspace, nil
+```go
+func (i *InsomniaImporter) Convert(insomnia *importmodels.InsomniaCollection) (*domain.Workspace, error) {
+    workspace := &domain.Workspace{
+        Version: 2,
+        Items:   make([]domain.WorkspaceItem, 0),
     }
-    ```
+
+    // Process collection recursively
+    for _, item := range insomnia.Collection {
+        i.processItem(item, nil, workspace)
+    }
+
+    return workspace, nil
+}
+```
 
 4.4. Implement recursive processItem method:
-    ```go
-    func (i *InsomniaImporter) processItem(
-        item importmodels.InsomniaItem,
-        parentID *string,
-        workspace *domain.Workspace,
-    ) {
-        // Check if this is a folder (has Children) or request (has URL)
-        if len(item.Children) > 0 {
-            // It's a folder
-            folderID := generateUUID()
+```go
+func (i *InsomniaImporter) processItem(
+    item importmodels.InsomniaItem,
+    parentID *string,
+    workspace *domain.Workspace,
+) {
+    // Check if this is a folder (has Children) or request (has URL)
+    if len(item.Children) > 0 {
+        // It's a folder
+        folderID := generateUUID()
             folder := domain.WorkspaceItem{
                 ID:        folderID,
                 Name:      item.Name,
