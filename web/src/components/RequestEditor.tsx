@@ -14,33 +14,44 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'];
   const bodyTypes: BodyType[] = ['none', 'json', 'form-data', 'url-encoded'];
 
+  // Normalize request data to ensure all required fields are present
+  const normalizedRequest: RequestItem = {
+    ...request,
+    headers: request.headers || [],
+    formData: request.formData || [],
+    body: request.body || '',
+    bodyType: request.bodyType || 'none',
+    method: request.method || 'GET',
+    url: request.url || '',
+  };
+
   const addHeader = () => {
-    const newHeaders = [...request.headers, { key: '', value: '', enabled: true }];
+    const newHeaders = [...normalizedRequest.headers, { key: '', value: '', enabled: true }];
     onUpdate({ headers: newHeaders });
   };
 
   const updateHeader = (index: number, field: keyof Header, value: string | boolean) => {
-    const newHeaders = request.headers.map((h, i) => i === index ? { ...h, [field]: value } : h);
+    const newHeaders = normalizedRequest.headers.map((h, i) => i === index ? { ...h, [field]: value } : h);
     onUpdate({ headers: newHeaders });
   };
 
   const removeHeader = (index: number) => {
-    const newHeaders = request.headers.filter((_, i) => i !== index);
+    const newHeaders = normalizedRequest.headers.filter((_, i) => i !== index);
     onUpdate({ headers: newHeaders });
   };
 
   const addFormDataItem = () => {
-    const newItems = [...request.formData, { key: '', value: '', enabled: true }];
+    const newItems = [...normalizedRequest.formData, { key: '', value: '', enabled: true }];
     onUpdate({ formData: newItems });
   };
 
   const updateFormDataItem = (index: number, field: keyof FormDataItem, value: string | boolean) => {
-    const newItems = request.formData.map((h, i) => i === index ? { ...h, [field]: value } : h);
+    const newItems = normalizedRequest.formData.map((h, i) => i === index ? { ...h, [field]: value } : h);
     onUpdate({ formData: newItems });
   };
 
   const removeFormDataItem = (index: number) => {
-    const newItems = request.formData.filter((_, i) => i !== index);
+    const newItems = normalizedRequest.formData.filter((_, i) => i !== index);
     onUpdate({ formData: newItems });
   };
 
@@ -50,7 +61,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
         <div className="flex items-center gap-2">
           <select
             className="bg-[#1e1e20] border border-[#3c4043] text-[#e8eaed] text-[13px] font-bold rounded-lg h-10 px-3 outline-none focus:border-[#8ab4f8] cursor-pointer"
-            value={request.method}
+            value={normalizedRequest.method}
             onChange={(e) => onUpdate({ method: e.target.value as HttpMethod })}
           >
             {methods.map(m => <option key={m} value={m}>{m}</option>)}
@@ -59,7 +70,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
             type="text"
             className="flex-1 bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[15px] rounded-lg h-10 px-4 outline-none focus:border-[#8ab4f8] transition-colors placeholder-[#5f6368]"
             placeholder="https://api.example.com/endpoint"
-            value={request.url}
+            value={normalizedRequest.url}
             onChange={(e) => onUpdate({ url: e.target.value })}
             onKeyDown={(e) => e.key === 'Enter' && onSend()}
           />
@@ -79,7 +90,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
         </div>
         <div className="text-[12px] font-bold text-[#9aa0a6] px-1 uppercase tracking-widest flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[#8ab4f8]"></span>
-          {request.name}
+          {normalizedRequest.name}
         </div>
       </div>
 
@@ -90,7 +101,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
             activeTab === 'headers' ? 'border-[#8ab4f8] text-[#8ab4f8]' : 'border-transparent text-[#9aa0a6] hover:text-[#e8eaed]'
           }`}
         >
-          Headers ({request.headers.length})
+          Headers ({normalizedRequest.headers.length})
         </button>
         <button
           onClick={() => setActiveTab('body')}
@@ -111,7 +122,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
               <div className="text-[11px] text-[#5f6368] uppercase font-bold tracking-widest">Value</div>
               <div />
             </div>
-            {request.headers.map((h, i) => (
+            {normalizedRequest.headers.map((h, i) => (
               <div key={i} className="grid grid-cols-[30px_1fr_1fr_40px] gap-3 group">
                 <div className="flex items-center justify-center">
                   <input
@@ -161,7 +172,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
                   key={type}
                   onClick={() => onUpdate({ bodyType: type })}
                   className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded-md transition-all ${
-                    request.bodyType === type
+                    normalizedRequest.bodyType === type
                       ? 'bg-[#8ab4f8] text-[#131314]'
                       : 'text-[#9aa0a6] hover:text-[#e8eaed]'
                   }`}
@@ -171,22 +182,22 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
               ))}
             </div>
 
-            {request.bodyType === 'none' && (
+            {normalizedRequest.bodyType === 'none' && (
               <div className="flex-1 flex items-center justify-center opacity-20">
                 <p className="text-[12px] font-bold uppercase tracking-[0.2em]">No Request Body</p>
               </div>
             )}
 
-            {request.bodyType === 'json' && (
+            {normalizedRequest.bodyType === 'json' && (
               <textarea
                 className="flex-1 bg-[#1e1e20] border border-[#3c4043] rounded-xl p-5 mono text-[14px] outline-none focus:border-[#8ab4f8] text-[#e8eaed] resize-none leading-relaxed shadow-inner"
                 placeholder='{ "message": "hello world" }'
-                value={request.body}
+                value={normalizedRequest.body}
                 onChange={(e) => onUpdate({ body: e.target.value })}
               />
             )}
 
-            {(request.bodyType === 'form-data' || request.bodyType === 'url-encoded') && (
+            {(normalizedRequest.bodyType === 'form-data' || normalizedRequest.bodyType === 'url-encoded') && (
               <div className="space-y-2">
                 <div className="grid grid-cols-[30px_1fr_1fr_40px] gap-3 mb-2 px-1">
                   <div />
@@ -194,7 +205,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
                   <div className="text-[11px] text-[#5f6368] uppercase font-bold tracking-widest">Value</div>
                   <div />
                 </div>
-                {request.formData.map((item, i) => (
+                {normalizedRequest.formData.map((item, i) => (
                   <div key={i} className="grid grid-cols-[30px_1fr_1fr_40px] gap-3 group">
                     <div className="flex items-center justify-center">
                       <input
@@ -239,7 +250,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
             )}
 
             <div className="mt-4 text-[11px] text-[#5f6368] uppercase font-bold tracking-widest text-center">
-              Body Modality: {request.bodyType.replace('-', ' ')}
+              Body Modality: {normalizedRequest.bodyType.replace('-', ' ')}
             </div>
           </div>
         )}
