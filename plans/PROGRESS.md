@@ -275,9 +275,112 @@ This file tracks progress through the implementation plan. **After each complete
 - Review structure and documentation
 
 **Next Steps:**
-- All implementation steps completed!
+- Implement Google Drive backup feature
 
 **Blockers/Notes:**
 - Wails requires Wails CLI installation for full functionality
 - Frontend needs to be built and copied to wails/frontend/dist/
 - Frontend code needs adaptation to use Wails bindings instead of HTTP API
+
+---
+
+## [2025-01-XX XX:XX] - Step 9: Implement Google Drive Backup with Token Sanitization
+
+**Completed:**
+- Created token sanitization utility (`internal/domain/sanitize.go`) to remove sensitive headers and form data before backup
+- Implemented comprehensive sanitization for headers (Authorization, X-API-Key, etc.) and form data (password, token, etc.)
+- Created Google Drive service (`internal/gdrive/service.go`) with OAuth authentication and file upload/download
+- Added automatic workspace sanitization before upload to Google Drive
+- Implemented backend API endpoints:
+  - `POST /api/gdrive/backup` - Backup workspace to Google Drive (with sanitization)
+  - `GET /api/gdrive/backups` - List all workspace backups
+  - `POST /api/gdrive/restore` - Restore workspace from Google Drive
+- Updated frontend SettingsModal with OAuth authentication flow and backup functionality
+- Added security: All sensitive tokens are removed before backup, OAuth handled in browser (tokens never touch server)
+
+**Files Changed:**
+- internal/domain/sanitize.go (created)
+- internal/domain/sanitize_test.go (created)
+- internal/gdrive/service.go (created)
+- internal/httpapi/handlers.go (updated - added Google Drive handlers)
+- internal/httpapi/router.go (updated - added Google Drive routes)
+- web/src/components/SettingsModal.tsx (updated - added OAuth and backup UI)
+- web/src/types.ts (updated - added accessToken to GDriveSettings)
+- go.mod (updated - added google.golang.org/api dependencies)
+
+**How to Verify:**
+- Install Google Drive API dependencies: `go get google.golang.org/api/drive/v3 google.golang.org/api/option golang.org/x/oauth2`
+- Run: `go test ./internal/domain/... -v` (sanitization tests)
+- Run: `go test ./internal/gdrive/... -v` (if tests are added)
+- Test OAuth flow: Enter OAuth Client ID in Settings, click "Authenticate with Google Drive"
+- Test backup: After authentication, click "Backup Workspace Now"
+- Verify: Check Google Drive for uploaded workspace file (should not contain any Authorization headers)
+- Verify: Restore a backup and confirm workspace is restored correctly
+
+**Security Features:**
+- **Token Sanitization**: All sensitive headers (Authorization, X-API-Key, etc.) are automatically removed before backup
+- **Form Data Sanitization**: Sensitive form fields (password, token, etc.) are removed
+- **OAuth Security**: OAuth handled entirely in browser - access tokens never stored on server
+- **Case-Insensitive Matching**: Sanitization works regardless of header case (Authorization, authorization, etc.)
+
+**Next Steps:**
+- Add automatic sync on workspace changes
+- Add visual sync status indicator
+
+**Blockers/Notes:**
+- **IMPORTANT**: Dependencies are now in go.mod - run `go mod tidy` to install
+- Google Drive API requires OAuth Client ID to be configured in Google Cloud Console
+- Users must grant "drive.file" scope permission for backup to work
+- Access tokens expire - users may need to re-authenticate periodically
+- For production, consider implementing refresh token flow for long-lived access
+- OAuth redirect URI must be configured in Google Cloud Console to match the app's origin
+
+---
+
+## [2025-01-XX XX:XX] - Enhancement: Automatic Google Drive Sync and Visual Indicator
+
+**Completed:**
+- Added Google Drive dependencies to go.mod (golang.org/x/oauth2, google.golang.org/api)
+- Implemented automatic sync to Google Drive when workspace is saved (if configured)
+- Added visual sync status indicator in Sidebar showing:
+  - "Syncing..." with spinner when backup is in progress
+  - "Synced" with checkmark when backup succeeds
+  - "Sync Error" with X icon when backup fails
+  - "Drive" icon when Google Drive is configured but idle
+- Sync status automatically resets after 3 seconds
+- Settings are now persisted to localStorage
+- Workspace changes automatically trigger Google Drive backup (if enabled and authenticated)
+
+**Files Changed:**
+- go.mod (updated - added Google Drive dependencies)
+- web/src/App.tsx (updated - added auto-sync logic and sync status state)
+- web/src/components/Sidebar.tsx (updated - added visual sync status indicator)
+
+**How to Verify:**
+- Configure Google Drive in Settings (OAuth Client ID + authenticate)
+- Make changes to workspace (add/edit requests)
+- Observe sync indicator in Sidebar:
+  - Shows "Syncing..." during backup
+  - Shows "Synced" after successful backup
+  - Shows "Drive" icon when idle
+- Verify backup file in Google Drive contains sanitized workspace (no tokens)
+
+**User Experience:**
+- Users can see at a glance if their workspace is synced to Google Drive
+- Automatic sync happens seamlessly in the background
+- Visual feedback provides confidence that backups are working
+- No manual backup button needed (though manual backup still available in Settings)
+
+**Next Steps:**
+- All implementation steps completed!
+- Consider adding automatic periodic backups
+- Consider adding backup encryption for additional security
+- Consider adding backup versioning/rotation
+
+**Blockers/Notes:**
+- Dependencies are in go.mod - run `go mod tidy` to install them
+- Google Drive API requires OAuth Client ID to be configured in Google Cloud Console
+- Users must grant "drive.file" scope permission for backup to work
+- Access tokens expire - users may need to re-authenticate periodically
+- For production, consider implementing refresh token flow for long-lived access
+- OAuth redirect URI must be configured in Google Cloud Console to match the app's origin

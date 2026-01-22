@@ -42,9 +42,10 @@ All created under `constrictor-rest-client/`:
 
 - `cmd/constrictor-rest-client/` — web server main (HTTP API)
 - `internal/config/` — configuration
-- `internal/domain/` — pure types
+- `internal/domain/` — pure types + token sanitization utilities
 - `internal/executor/` — `Executor` interface + `HTTPExecutor`
 - `internal/storage/` — `WorkspaceStore` interface + file-backed store
+- `internal/gdrive/` — Google Drive backup service with OAuth and file upload
 - `internal/httpapi/` — handlers/router/DTO validation
 - `wails/` — Wails entrypoint + bindings (desktop)
 - `web/` — new React web UI (NOT the reference UI)
@@ -57,6 +58,9 @@ All created under `constrictor-rest-client/`:
 - `PUT /api/workspace` → saves the workspace
 - `POST /api/execute` → executes a request and returns:
   - `status`, `headers`, `body`, `timeMs`, `sizeBytes`, plus an `error` object on failures
+- `POST /api/gdrive/backup` → backs up workspace to Google Drive (with automatic token sanitization)
+- `GET /api/gdrive/backups` → lists all workspace backups in Google Drive
+- `POST /api/gdrive/restore` → restores a workspace from Google Drive
 
 ## Persistence
 
@@ -109,6 +113,11 @@ All created under `constrictor-rest-client/`:
 6. **Write `DESIGN.md`**, add `plans/PROGRESS.md`, save this plan into `plans/`.
 7. **Add `agents.md`** to the key folders above.
 8. **Add Wails desktop packaging** under `constrictor-rest-client/wails/`, reuse UI, bind Go services, document `wails dev` and `wails build`.
+9. **Implement Google Drive backup** with automatic token sanitization for security:
+   - Token sanitization utility to remove sensitive headers (Authorization, X-API-Key, etc.)
+   - Google Drive service with OAuth authentication and file upload
+   - Backend API endpoints for backup/restore operations
+   - Frontend integration with OAuth flow and backup UI
 
 ## Progress logging rule
 
