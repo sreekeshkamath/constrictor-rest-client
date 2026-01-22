@@ -1,11 +1,14 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/constrictor/constrictor-rest-client/internal/domain"
 	"github.com/constrictor/constrictor-rest-client/internal/executor"
+	"github.com/constrictor/constrictor-rest-client/internal/gdrive"
 	"github.com/constrictor/constrictor-rest-client/internal/storage"
 )
 
@@ -17,15 +20,17 @@ type APIError struct {
 
 // Handlers holds dependencies for HTTP handlers
 type Handlers struct {
-	store    storage.WorkspaceStore
-	executor executor.Executor
+	store         storage.WorkspaceStore
+	executor      executor.Executor
+	gdriveService gdrive.Service
 }
 
 // NewHandlers creates a new Handlers instance
 func NewHandlers(store storage.WorkspaceStore, exec executor.Executor) *Handlers {
 	return &Handlers{
-		store:    store,
-		executor: exec,
+		store:         store,
+		executor:      exec,
+		gdriveService: gdrive.NewService(),
 	}
 }
 
@@ -181,4 +186,117 @@ type ValidationError struct {
 
 func (e *ValidationError) Error() string {
 	return e.Message
+}
+
+// HandleBackupToGDrive backs up the current workspace to Google Drive.
+// The workspace is automatically sanitized to remove all sensitive headers and form data.
+// Request body: { "accessToken": "...", "filename": "..." }
+// Response: { "fileId": "...", "filename": "..." }
+func (h *Handlers) HandleBackupToGDrive(w http.ResponseWriter, r *http.Request) {
+	var req BackupRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid JSON", err.Error())
+		return
+	}
+
+	if req.AccessToken == "" {
+		respondError(w, http.StatusBadRequest, "validation failed", "accessToken is required")
+		return
+	}
+
+	// Load current workspace
+	workspace, err := h.store.Load()
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to load workspace", err.Error())
+		return
+	}
+
+	// Generate filename if not provided
+	filename := req.Filename
+	if filename == "" {
+		filename = "constrictor-workspace-" + time.Now().Format("2006-01-02-150405") + ".json"
+	}
+
+	// Backup to Google Drive (workspace is automatically sanitized)
+	ctx := r.Context()
+	fileID, err := h.gdriveService.BackupWorkspace(ctx, req.AccessToken, workspace, filename)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "backup failed", err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{
+		"fileId":   fileID,
+		"filename": filename,
+		"status":   "backed up",
+	})
+}
+
+// HandleListGDriveBackups lists all workspace backups in Google Drive.
+// Query param: accessToken
+// Response: { "backups": [...] }
+func (h *Handlers) HandleListGDriveBackups(w http.ResponseWriter, r *http.Request) {
+	accessToken := r.URL.Query().Get("accessToken")
+	if accessToken == "" {
+		respondError(w, http.StatusBadRequest, "validation failed", "accessToken query parameter is required")
+		return
+	}
+
+	ctx := r.Context()
+	backups, err := h.gdriveService.ListBackups(ctx, accessToken)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to list backups", err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"backups": backups,
+	})
+}
+
+// HandleRestoreFromGDrive restores a workspace from Google Drive.
+// Request body: { "accessToken": "...", "fileId": "..." }
+// Response: { "version": 1, "items": [...] }
+func (h *Handlers) HandleRestoreFromGDrive(w http.ResponseWriter, r *http.Request) {
+	var req RestoreRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid JSON", err.Error())
+		return
+	}
+
+	if req.AccessToken == "" {
+		respondError(w, http.StatusBadRequest, "validation failed", "accessToken is required")
+		return
+	}
+	if req.FileID == "" {
+		respondError(w, http.StatusBadRequest, "validation failed", "fileId is required")
+		return
+	}
+
+	ctx := r.Context()
+	workspace, err := h.gdriveService.RestoreWorkspace(ctx, req.AccessToken, req.FileID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "restore failed", err.Error())
+		return
+	}
+
+	// Save restored workspace
+	if err := h.store.Save(workspace); err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to save restored workspace", err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, workspace)
+}
+
+// BackupRequest represents the request body for /api/gdrive/backup
+type BackupRequest struct {
+	AccessToken string `json:"accessToken"`
+	Filename    string `json:"filename,omitempty"`
+}
+
+// RestoreRequest represents the request body for /api/gdrive/restore
+type RestoreRequest struct {
+	AccessToken string `json:"accessToken"`
+	FileID      string `json:"fileId"`
 }
