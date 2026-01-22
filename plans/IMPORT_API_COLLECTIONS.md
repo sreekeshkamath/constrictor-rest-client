@@ -42,95 +42,38 @@ data/
       "modifiedAt": 1769071038217
     }
   ]
-}
-```
-
----
-
-## Step-by-Step Implementation
-
-### Step 1: Extend WorkspaceStore Interface
-
-**Goal**: Add methods for multi-workspace support
-
-**New Interface Methods**:
-- `ListWorkspaces() ([]WorkspaceInfo, error)` - List all workspaces
-- `GetWorkspace(id string) (*domain.Workspace, error)` - Load specific workspace
-- `SaveWorkspaceAs(id string, workspace *domain.Workspace) error` - Save to specific path
-- `DeleteWorkspace(id string) error` - Remove workspace and files
-- `SetActiveWorkspace(id string) error` - Set active workspace in registry
-
-**Files**:
-- Modify: `internal/storage/store.go`
-- Create: `internal/storage/workspaces.go`
-
-**Output**: `MultiWorkspaceStore` implementation with registry-based storage
-
-**Detailed Tasks**:
-1.1. Create `WorkspaceInfo` struct in domain package:
-    ```go
-    type WorkspaceInfo struct {
-        ID         string `json:"id"`
-        Name       string `json:"name"`
-        Path       string `json:"path"`
-        CreatedAt  int64  `json:"createdAt"`
-        ModifiedAt int64  `json:"modifiedAt"`
     }
     ```
 
-1.2. Update `WorkspaceStore` interface to include new methods:
+6.12. Implement HandlePutWorkspace (update current workspace):
     ```go
-    type WorkspaceStore interface {
-        Load() (*domain.Workspace, error)
-        Save(workspace *domain.Workspace) error
-        ListWorkspaces() ([]WorkspaceInfo, error)
-        GetWorkspace(id string) (*domain.Workspace, error)
-        SaveWorkspaceAs(id string, workspace *domain.Workspace, name string) error
-        DeleteWorkspace(id string) error
-        SetActiveWorkspace(id string) error
-        GetActiveWorkspaceID() string
+    func (h *Handlers) HandlePutWorkspace(w http.ResponseWriter, r *http.Request) {
+        vars := mux.Vars(r)
+        id := vars["id"]
+
+        var workspace domain.Workspace
+        if err := json.NewDecoder(r.Body).Decode(&workspace); err != nil {
+            respondError(w, http.StatusBadRequest, "invalid request body", err.Error())
+            return
+        }
+
+        // Validate workspace ID matches the URL
+        if workspace.ID != "" && workspace.ID != id {
+            respondError(w, http.StatusBadRequest, "workspace ID mismatch", "")
+            return
+        }
+
+        // Ensure ID is set
+        workspace.ID = id
+
+        if err := h.store.SaveWorkspace(&workspace); err != nil {
+            respondError(w, http.StatusInternalServerError, "failed to save workspace", err.Error())
+            return
+        }
+
+        respondJSON(w, http.StatusOK, map[string]bool{"success": true})
     }
     ```
-
-1.3. Create `MultiWorkspaceStore` struct that wraps existing FileStore:
-    ```go
-    type MultiWorkspaceStore struct {
-        registryPath string
-        dataDir      string
-        mu           sync.RWMutex
-        activeID     string
-    }
-    ```
-
-1.4. Implement `ListWorkspaces()`:
-    - Read registry file
-    - Return array of WorkspaceInfo from registry.workspaces
-    - Validate each workspace file exists
-    - Handle missing files gracefully
-
-1.5. Implement `GetWorkspace(id string)`:
-    - Look up workspace path in registry
-    - Read workspace JSON file
-    - Return workspace or error if not found
-
-1.6. Implement `SaveWorkspaceAs(id string, workspace, name)`:
-    - Create directory `workspaces/{id}/`
-    - Save workspace to `workspaces/{id}/workspace.json`
-    - Add/update workspace entry in registry
-    - Update registry file
-    - Update ModifiedAt timestamp
-
-1.7. Implement `DeleteWorkspace(id string)`:
-    - Prevent deleting "default" workspace
-    - If deleting active workspace, switch to default first
-    - Remove workspace directory and files
-    - Remove from registry
-    - Update registry file
-
-1.8. Implement `SetActiveWorkspace(id string)`:
-    - Validate workspace exists in registry
-    - Update activeWorkspaceId in registry
-    - Update registry file
 
 **Testing**:
 - Test `ListWorkspaces()` returns empty array initially
@@ -948,7 +891,7 @@ func (i *InsomniaImporter) processItem(
 
         // Current workspace endpoints
         api.HandleFunc("/workspace", handlers.HandleGetCurrentWorkspace).Methods("GET")
-        api.HandleFunc("/workspace", handlers.HandlePutWorkspace).Methods("PUT")
+        api.HandleFunc("/workspace/{id}", handlers.HandlePutWorkspace).Methods("PUT")
 
         // Workspace management routes
         api.HandleFunc("/workspaces", handlers.HandleListWorkspaces).Methods("GET")
@@ -1520,13 +1463,10 @@ func (i *InsomniaImporter) processItem(
 
       try {
         const workspace = buildWorkspaceFromItems();
-        const res = await fetch('/api/workspace', {
+        const res = await fetch(`/api/workspace/${activeWorkspaceId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: activeWorkspaceId,
-            workspace,
-          }),
+          body: JSON.stringify(workspace),
         });
 
         if (!res.ok) throw new Error('Failed to save workspace');
