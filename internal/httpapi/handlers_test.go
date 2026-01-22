@@ -10,7 +10,6 @@ import (
 
 	"github.com/constrictor/constrictor-rest-client/internal/domain"
 	"github.com/constrictor/constrictor-rest-client/internal/executor"
-	"github.com/constrictor/constrictor-rest-client/internal/storage"
 )
 
 type mockStore struct {
@@ -47,7 +46,7 @@ func (m *mockExecutor) Execute(ctx context.Context, req *executor.Request) (*exe
 	}
 	if m.result == nil {
 		return &executor.ExecutionResult{
-			Status:    200,
+			Status:     200,
 			StatusText: "OK",
 			Headers:    map[string]string{},
 			Body:       "{}",
