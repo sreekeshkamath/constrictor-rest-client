@@ -42,8 +42,8 @@ data/
       "modifiedAt": 1769071038217
     }
   ]
-    }
-    ```
+}
+```
 
 6.12. Implement HandlePutWorkspace (update current workspace):
     ```go
@@ -334,7 +334,7 @@ func (i *InsomniaImporter) processItem(
         headers := i.convertHeaders(req.Headers)
 
         // Convert auth headers and merge (auth headers take precedence)
-        authHeaders := i.convertAuth(req.Authentication)
+        authHeaders := i.convertAuth(req.Auth)
         if len(authHeaders) > 0 {
             headers = append(authHeaders, headers...)
         }
