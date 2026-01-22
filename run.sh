@@ -88,9 +88,8 @@ fi
 
 # Start frontend
 echo -e "${GREEN}🎨 Starting frontend server on http://localhost:5173...${NC}"
-cd web && npm run dev &
+npm --prefix web run dev &
 FRONTEND_PID=$!
-cd ..
 
 echo -e "\n${BLUE}✅ Both servers are running!${NC}"
 echo -e "${BLUE}   Backend:  http://localhost:8080${NC}"
