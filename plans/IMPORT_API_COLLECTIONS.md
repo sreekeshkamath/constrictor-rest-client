@@ -1215,10 +1215,17 @@ func (i *InsomniaImporter) processItem(
         });
         
         if (!importRes.ok) throw new Error('Import failed');
-        
+
         const result = await importRes.json();
         setResult(result);
-        onImportComplete(result.workspace.metadata.id);
+
+        // Safely extract workspace id with nil checks
+        const workspaceId = result.workspace?.metadata?.id;
+        if (workspaceId) {
+          onImportComplete(workspaceId);
+        } else {
+          console.warn('Imported workspace missing metadata.id');
+        }
       } catch (err: any) {
         setError(err.message);
       } finally {
