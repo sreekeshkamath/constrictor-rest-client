@@ -1,6 +1,6 @@
 # Constrictor REST Client
 
-A modern REST API testing tool with a Go backend and React frontend. Features workspace management, request organization, and Google Drive backup with automatic token sanitization.
+A modern REST API testing tool with a Go backend and React frontend.
 
 ## 🚀 Quick Start
 
