@@ -1,0 +1,43 @@
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Build
+dist/
+build/
+bin/
+wails/frontend/dist/
+wails/frontend/wailsjs/
+
+# Data
+data/
+data/*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!tsconfig.node.json
+!wails.json
+
+# Dependencies
+vendor/
+node_modules/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
