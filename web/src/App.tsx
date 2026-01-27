@@ -43,8 +43,31 @@ const App: React.FC = () => {
   // Load workspace from backend
   useEffect(() => {
     const loadWorkspace = async () => {
-      // Wait a bit for Wails runtime to be ready
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait for Wails runtime to be ready (with retries)
+      let retries = 10;
+      while (retries > 0 && typeof window !== 'undefined' && (!(window as any).go?.main?.App)) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        retries--;
+      }
+      
+      if (retries === 0 && typeof window !== 'undefined' && (!(window as any).go?.main?.App)) {
+        console.warn('Wails runtime not available, using default workspace');
+        const defaultReq: RequestItem = {
+          id: 'welcome-req',
+          name: 'Get Users Demo',
+          method: 'GET',
+          url: 'https://jsonplaceholder.typicode.com/users',
+          headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
+          bodyType: 'json',
+          body: '',
+          formData: [],
+          type: 'request',
+          createdAt: Date.now()
+        };
+        setItems([defaultReq]);
+        setActiveId(defaultReq.id);
+        return;
+      }
       
       try {
         const items = await GetWorkspace();

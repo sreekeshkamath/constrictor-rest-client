@@ -56,10 +56,14 @@ interface App {
  * Check if Wails runtime is available
  */
 export function isWailsRuntime(): boolean {
-  return typeof window !== 'undefined' && 
-         typeof (window as any).go !== 'undefined' && 
-         typeof (window as any).go.main !== 'undefined' &&
-         typeof (window as any).go.main.App !== 'undefined';
+  try {
+    return typeof window !== 'undefined' && 
+           typeof (window as any).go !== 'undefined' && 
+           typeof (window as any).go.main !== 'undefined' &&
+           typeof (window as any).go.main.App !== 'undefined';
+  } catch (e) {
+    return false;
+  }
 }
 
 /**
@@ -80,12 +84,15 @@ function getApp(): App | null {
 export async function GetWorkspace(): Promise<SidebarItem[]> {
   const app = getApp();
   if (!app) {
-    throw new Error('Wails runtime is not available. This app must be run in Wails.');
+    console.error('Wails runtime is not available');
+    return []; // Return empty array instead of throwing
   }
   try {
-    return await app.GetWorkspace();
+    const result = await app.GetWorkspace();
+    return result || [];
   } catch (error: any) {
-    throw new Error(`Failed to load workspace: ${error.message || error}`);
+    console.error('Failed to load workspace:', error);
+    return []; // Return empty array instead of throwing
   }
 }
 
@@ -97,12 +104,14 @@ export async function GetWorkspace(): Promise<SidebarItem[]> {
 export async function SaveWorkspace(items: SidebarItem[]): Promise<void> {
   const app = getApp();
   if (!app) {
-    throw new Error('Wails runtime is not available. This app must be run in Wails.');
+    console.warn('Wails runtime is not available, cannot save workspace');
+    return; // Silently fail instead of throwing
   }
   try {
     await app.SaveWorkspace(items);
   } catch (error: any) {
-    throw new Error(`Failed to save workspace: ${error.message || error}`);
+    console.error('Failed to save workspace:', error);
+    // Don't throw - just log the error
   }
 }
 
