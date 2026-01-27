@@ -189,15 +189,20 @@ func (a *App) OnStartup(ctx context.Context) {
 	a.ctx = ctx
 }
 
-// GetWorkspace returns the current workspace
+// GetWorkspace returns the current workspace as an array of SidebarItem
 // This method is exposed to the frontend via Wails bindings
-func (a *App) GetWorkspace() (*domain.Workspace, error) {
-	return a.store.Load()
+func (a *App) GetWorkspace() ([]SidebarItem, error) {
+	workspace, err := a.store.Load()
+	if err != nil {
+		return nil, err
+	}
+	return convertWorkspaceToItems(workspace), nil
 }
 
-// SaveWorkspace saves the workspace
+// SaveWorkspace saves the workspace from an array of SidebarItem
 // This method is exposed to the frontend via Wails bindings
-func (a *App) SaveWorkspace(workspace *domain.Workspace) error {
+func (a *App) SaveWorkspace(items []SidebarItem) error {
+	workspace := convertItemsToWorkspace(items)
 	return a.store.Save(workspace)
 }
 
