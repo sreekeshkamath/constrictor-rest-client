@@ -1,4 +1,4 @@
-.PHONY: dev dev-backend dev-frontend install test build clean help
+.PHONY: dev dev-backend dev-frontend install test build clean help wails-build-frontend wails-dev wails-build wails-build-all wails-build-windows wails-build-linux wails-build-darwin wails-clean
 
 # Default target
 .DEFAULT_GOAL := help
@@ -45,3 +45,41 @@ clean: ## Clean build artifacts
 	@rm -rf web/dist
 	@rm -rf web/node_modules
 	@rm -rf node_modules
+
+wails-build-frontend: ## Build frontend for Wails (required before wails-build)
+	@echo "$(BLUE)🏗️  Building frontend for Wails...$(NC)"
+	@cd web && npm run build
+	@if [ ! -d "web/dist" ]; then \
+		echo "$(YELLOW)⚠️  Warning: web/dist directory not found after build$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)✅ Frontend built successfully$(NC)"
+
+wails-dev: wails-build-frontend ## Run Wails in development mode with hot reload
+	@echo "$(BLUE)🚀 Starting Wails development mode...$(NC)"
+	@cd wails && wails dev
+
+wails-build: wails-build-frontend ## Build Wails app for current platform
+	@echo "$(BLUE)🏗️  Building Wails app for current platform...$(NC)"
+	@cd wails && wails build
+
+wails-build-all: wails-build-frontend ## Build Wails app for all platforms (Windows, Linux, macOS)
+	@echo "$(BLUE)🏗️  Building Wails app for all platforms...$(NC)"
+	@cd wails && wails build -platform windows/amd64,linux/amd64,darwin/amd64
+
+wails-build-windows: wails-build-frontend ## Build Wails app for Windows
+	@echo "$(BLUE)🏗️  Building Wails app for Windows...$(NC)"
+	@cd wails && wails build -platform windows/amd64
+
+wails-build-linux: wails-build-frontend ## Build Wails app for Linux
+	@echo "$(BLUE)🏗️  Building Wails app for Linux...$(NC)"
+	@cd wails && wails build -platform linux/amd64
+
+wails-build-darwin: wails-build-frontend ## Build Wails app for macOS
+	@echo "$(BLUE)🏗️  Building Wails app for macOS...$(NC)"
+	@cd wails && wails build -platform darwin/amd64
+
+wails-clean: ## Clean Wails build artifacts
+	@echo "$(YELLOW)🧹 Cleaning Wails build artifacts...$(NC)"
+	@rm -rf wails/build
+	@rm -rf web/dist
