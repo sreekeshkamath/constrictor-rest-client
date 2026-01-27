@@ -265,106 +265,144 @@ This file tracks progress through the Wails native desktop app implementation pl
 
 ---
 
-## Step 6: Update Wails Configuration
+## [2026-01-27] - Step 6: Update Wails Configuration
 
-**Status**: ⏳ Pending
+**Status**: ✅ Completed
 
 **Completed:**
-- (To be filled after completion)
+- Verified `frontend.dir` points to `web/dist` (already correct)
+- Verified build commands (`install`, `build`, `dev`) are empty (correct - Wails handles this)
+- Updated copyright information
+- Updated comments to reflect native desktop application
+- Configuration is valid JSON and ready for Wails builds
 
 **Files Changed:**
-- (To be filled after completion)
+- `wails/wails.json` - Minor updates to copyright and comments
 
 **Tests Added:**
-- (To be filled after completion)
+- Configuration validation (JSON syntax)
 
 **How to Verify:**
 - Run `wails build` (if Wails CLI installed) to verify configuration
 - Check for any configuration errors
+- Verify JSON is valid
 
 **Next Steps:**
 - Step 7: Create Frontend Build Integration
 
 **Blockers/Notes:**
-- (To be filled if any issues arise)
+- Configuration was already mostly correct
+- Frontend must be built before Wails can embed it
 
 ---
 
-## Step 7: Create Frontend Build Integration
+## [2026-01-27] - Step 7: Create Frontend Build Integration
 
-**Status**: ⏳ Pending
+**Status**: ✅ Completed
 
 **Completed:**
-- (To be filled after completion)
+- Verified `web/vite.config.ts` outputs to `web/dist/` (already correct)
+- Created `wails-build-frontend` Makefile target that:
+  - Builds frontend: `cd web && npm run build`
+  - Verifies `web/dist` exists and contains built files
+  - Exits with error if build fails
 
 **Files Changed:**
-- (To be filled after completion)
+- `Makefile` - Added `wails-build-frontend` target
 
 **Tests Added:**
-- (To be filled after completion)
+- Manual verification: Run `make wails-build-frontend`
 
 **How to Verify:**
 - Run: `cd web && npm run build`
-- Check: `ls -la web/dist/` shows built files
+- Check: `ls -la web/dist/` shows built files (index.html, JS bundles, CSS, assets)
 - Verify no build errors
+- Run: `make wails-build-frontend` should succeed
 
 **Next Steps:**
 - Step 8: Update Makefile with Wails Targets
 
 **Blockers/Notes:**
-- (To be filled if any issues arise)
+- Frontend must be built before Wails can embed it
+- Build output must be in `web/dist/` as configured in `wails.json`
 
 ---
 
-## Step 8: Update Makefile with Wails Targets
+## [2026-01-27] - Step 8: Update Makefile with Wails Targets
 
-**Status**: ⏳ Pending
+**Status**: ✅ Completed
 
 **Completed:**
-- (To be filled after completion)
+- Added `wails-dev` target: Builds frontend, then runs `wails dev` for development with hot reload
+- Added `wails-build` target: Builds frontend, then runs `wails build` for current platform
+- Added `wails-build-all` target: Builds frontend, then builds for all platforms (Windows, Linux, macOS)
+- Added platform-specific targets:
+  - `wails-build-windows`: Build for Windows
+  - `wails-build-linux`: Build for Linux
+  - `wails-build-darwin`: Build for macOS
+- Added `wails-clean` target: Cleans Wails build artifacts and frontend dist
+- All Wails targets automatically build frontend first using `wails-build-frontend` dependency
 
 **Files Changed:**
-- (To be filled after completion)
+- `Makefile` - Added all Wails-related targets
 
 **Tests Added:**
-- (To be filled after completion)
+- Manual verification: Run `make help` to see new targets
 
 **How to Verify:**
-- Run: `make help` to see new targets
+- Run: `make help` to see new targets listed
 - Test: `make wails-build-frontend` (should build frontend)
 - Test: `make wails-dev` (if Wails CLI installed)
+- Test: `make wails-build` (if Wails CLI installed)
 
 **Next Steps:**
 - Step 9: Update Documentation
 
 **Blockers/Notes:**
-- (To be filled if any issues arise)
+- Wails CLI must be installed: `go install github.com/wailsapp/wails/v2/cmd/wails@latest`
+- Platform-specific builds require appropriate build tools (MSVC for Windows, Xcode for macOS, etc.)
 
 ---
 
-## Step 9: Update Documentation
+## [2026-01-27] - Step 9: Update Documentation
 
-**Status**: ⏳ Pending
+**Status**: ✅ Completed
 
 **Completed:**
-- (To be filled after completion)
+- Added "Native Desktop App" section to README.md
+- Documented Wails CLI installation: `go install github.com/wailsapp/wails/v2/cmd/wails@latest`
+- Documented development workflow: `make wails-dev` or `wails dev` with hot reload
+- Documented build process:
+  - `make wails-build` for current platform
+  - `make wails-build-all` for all platforms
+  - Platform-specific targets (Windows, Linux, macOS)
+- Added troubleshooting section with:
+  - Wails CLI installation verification
+  - Frontend build requirements
+  - Platform-specific build tool requirements
+  - Common build errors and solutions
+- Added Wails commands to "Available Commands" section
+- Kept existing web server instructions separate
 
 **Files Changed:**
-- (To be filled after completion)
+- `README.md` - Added comprehensive Wails documentation
 
 **Tests Added:**
-- (To be filled after completion)
+- Documentation review
 
 **How to Verify:**
 - Read through README.md
 - Verify instructions are clear and complete
-- Test documented commands
+- Test documented commands (if Wails CLI installed)
+- Verify all commands are listed in help section
 
 **Next Steps:**
 - Step 10: Final Integration Testing
 
 **Blockers/Notes:**
-- (To be filled if any issues arise)
+- Documentation assumes Wails CLI is installed
+- Platform-specific requirements are documented
+- Web server mode remains available as alternative
 
 ---
 
