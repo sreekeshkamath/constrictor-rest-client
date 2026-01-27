@@ -152,6 +152,12 @@ make wails-build-linux    # Linux
 make wails-build-darwin   # macOS
 ```
 
+**Create DMG for macOS distribution:**
+```bash
+make wails-build-dmg
+# Creates constrictor-rest-client.dmg in the project root
+```
+
 **Build frontend only (for Wails):**
 ```bash
 make wails-build-frontend

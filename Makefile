@@ -1,4 +1,4 @@
-.PHONY: dev dev-backend dev-frontend install test build clean help wails-build-frontend wails-dev wails-build wails-build-all wails-build-windows wails-build-linux wails-build-darwin wails-clean
+.PHONY: dev dev-backend dev-frontend install test build clean help wails-build-frontend wails-dev wails-build wails-build-all wails-build-windows wails-build-linux wails-build-darwin wails-build-dmg wails-clean
 
 # Default target
 .DEFAULT_GOAL := help
@@ -125,8 +125,35 @@ wails-build-darwin: wails-build-frontend ## Build Wails app for macOS
 	fi
 	@cd wails && PATH="$$HOME/go/bin:$$PATH" wails build -platform darwin/amd64
 
+wails-build-dmg: wails-build-darwin ## Create DMG file for macOS distribution
+	@echo "$(BLUE)📦 Creating DMG file...$(NC)"
+	@APP_NAME="constrictor-rest-client" && \
+	APP_PATH="wails/build/bin/darwin/amd64/$$APP_NAME.app" && \
+	DMG_NAME="$$APP_NAME.dmg" && \
+	TEMP_DMG="$$APP_NAME-temp.dmg" && \
+	DMG_DIR="$$APP_NAME-dmg" && \
+	if [ ! -d "$$APP_PATH" ]; then \
+		echo "$(YELLOW)⚠️  App not found at $$APP_PATH. Building first...$(NC)"; \
+		$(MAKE) wails-build-darwin; \
+	fi && \
+	rm -rf "$$DMG_DIR" "$$DMG_NAME" "$$TEMP_DMG" && \
+	mkdir -p "$$DMG_DIR" && \
+	cp -R "$$APP_PATH" "$$DMG_DIR/" && \
+	ln -s /Applications "$$DMG_DIR/Applications" && \
+	hdiutil create -srcfolder "$$DMG_DIR" -volname "$$APP_NAME" -fs HFS+ -fsargs "-c c=64,a=16,e=16" -format UDRW -size 200m "$$TEMP_DMG" && \
+	DEVICE=$$(hdiutil attach -readwrite -noverify -noautoopen "$$TEMP_DMG" | egrep '^/dev/' | sed 1q | awk '{print $$1}') && \
+	sleep 2 && \
+	chmod -Rf go-w "/Volumes/$$APP_NAME" || true && \
+	sync && \
+	hdiutil detach "$$DEVICE" && \
+	hdiutil convert "$$TEMP_DMG" -format UDZO -imagekey zlib-level=9 -o "$$DMG_NAME" && \
+	rm -rf "$$DMG_DIR" "$$TEMP_DMG" && \
+	echo "$(GREEN)✅ DMG created: $$DMG_NAME$(NC)"
+
 wails-clean: ## Clean Wails build artifacts
 	@echo "$(YELLOW)🧹 Cleaning Wails build artifacts...$(NC)"
 	@rm -rf wails/build
 	@rm -rf web/dist
 	@rm -f wails/frontend
+	@rm -f *.dmg
+	@rm -rf *-dmg
