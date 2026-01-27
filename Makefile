@@ -54,10 +54,10 @@ wails-build-frontend: ## Build frontend for Wails (required before wails-build)
 		exit 1; \
 	fi
 	@echo "$(GREEN)✅ Frontend built successfully$(NC)"
-	@echo "$(BLUE)🔗 Creating symlink for Wails embed...$(NC)"
-	@rm -f wails/frontend
-	@ln -sf ../web/dist wails/frontend
-	@echo "$(GREEN)✅ Symlink created$(NC)"
+	@echo "$(BLUE)📦 Copying frontend to wails/frontend for embed...$(NC)"
+	@rm -rf wails/frontend
+	@cp -r web/dist wails/frontend
+	@echo "$(GREEN)✅ Frontend copied for Wails embed$(NC)"
 
 # Find Wails CLI - check common locations
 WAILS_CMD := $(shell which wails 2>/dev/null || [ -f ~/go/bin/wails ] && echo ~/go/bin/wails || [ -f $(GOPATH)/bin/wails ] && echo $(GOPATH)/bin/wails || echo wails)
