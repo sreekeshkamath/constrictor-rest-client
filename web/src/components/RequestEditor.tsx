@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
-import { RequestItem, HttpMethod, Header, BodyType, FormDataItem } from '../types';
+import { RequestItem, HttpMethod, Header, BodyType, FormDataItem, SidebarItem, AuthConfig } from '../types';
+import AuthSelector from './AuthSelector';
+import AuthConfigModal from './AuthConfigModal';
 
 interface RequestEditorProps {
   request: RequestItem;
   onUpdate: (updates: Partial<RequestItem>) => void;
   onSend: () => void;
   isLoading: boolean;
+  items?: SidebarItem[]; // For checking parent existence
 }
 
-const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend, isLoading }) => {
+const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend, isLoading, items = [] }) => {
   const [activeTab, setActiveTab] = useState<'headers' | 'body'>('headers');
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'];
   const bodyTypes: BodyType[] = ['none', 'json', 'form-data', 'url-encoded'];
@@ -23,6 +27,25 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
     bodyType: request.bodyType || 'none',
     method: request.method || 'GET',
     url: request.url || '',
+    auth: request.auth || { type: 'none', config: {} },
+  };
+
+  // Check if request has a parent folder
+  const hasParent = normalizedRequest.parentId != null && items.some(item => item.id === normalizedRequest.parentId);
+
+  const handleAuthSelect = (auth: AuthConfig) => {
+    // If auth type requires configuration, show modal
+    const needsConfig = auth.type !== 'none' && auth.type !== 'inherit' && auth.type !== 'netrc';
+    if (needsConfig) {
+      setShowAuthModal(true);
+    } else {
+      onUpdate({ auth });
+    }
+  };
+
+  const handleAuthSave = (auth: AuthConfig) => {
+    onUpdate({ auth });
+    setShowAuthModal(false);
   };
 
   const addHeader = () => {
@@ -115,13 +138,42 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
 
       <div className="flex-1 overflow-y-auto p-6">
         {activeTab === 'headers' ? (
-          <div className="space-y-2">
-            <div className="grid grid-cols-[30px_1fr_1fr_40px] gap-3 mb-2 px-1">
-              <div />
-              <div className="text-[11px] text-[#5f6368] uppercase font-bold tracking-widest">Key</div>
-              <div className="text-[11px] text-[#5f6368] uppercase font-bold tracking-widest">Value</div>
-              <div />
+          <div className="space-y-6">
+            {/* Authentication Section */}
+            <div className="space-y-2">
+              <div className="text-[11px] text-[#5f6368] uppercase font-bold tracking-widest mb-2">
+                Authentication
+              </div>
+              <AuthSelector
+                auth={normalizedRequest.auth}
+                onSelect={handleAuthSelect}
+                hasParent={hasParent}
+              />
+              {normalizedRequest.auth && normalizedRequest.auth.type !== 'none' && normalizedRequest.auth.type !== 'inherit' && (
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="mt-2 text-[12px] font-bold text-[#8ab4f8] hover:text-[#aecbfa] flex items-center gap-1 uppercase tracking-widest transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Configure
+                </button>
+              )}
             </div>
+
+            {/* Headers Section */}
+            <div className="space-y-2">
+              <div className="text-[11px] text-[#5f6368] uppercase font-bold tracking-widest mb-2">
+                Headers
+              </div>
+              <div className="grid grid-cols-[30px_1fr_1fr_40px] gap-3 mb-2 px-1">
+                <div />
+                <div className="text-[11px] text-[#5f6368] uppercase font-bold tracking-widest">Key</div>
+                <div className="text-[11px] text-[#5f6368] uppercase font-bold tracking-widest">Value</div>
+                <div />
+              </div>
             {normalizedRequest.headers.map((h, i) => (
               <div key={i} className="grid grid-cols-[30px_1fr_1fr_40px] gap-3 group">
                 <div className="flex items-center justify-center">
@@ -163,6 +215,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
               </svg>
               Add Row
             </button>
+            </div>
           </div>
         ) : (
           <div className="h-full flex flex-col space-y-4">
@@ -255,6 +308,14 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
           </div>
         )}
       </div>
+
+      {showAuthModal && normalizedRequest.auth && (
+        <AuthConfigModal
+          auth={normalizedRequest.auth}
+          onSave={handleAuthSave}
+          onCancel={() => setShowAuthModal(false)}
+        />
+      )}
     </div>
   );
 };

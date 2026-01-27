@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { SidebarItem, RequestItem } from '../types';
+import { SidebarItem, RequestItem, FolderItem, AuthConfig } from '../types';
 import MethodBadge from './MethodBadge';
+import AuthSelector from './AuthSelector';
+import AuthConfigModal from './AuthConfigModal';
 
 interface SidebarProps {
   items: SidebarItem[];
@@ -14,6 +16,7 @@ interface SidebarProps {
   onOpenSettings: () => void;
   onExport: () => void;
   onImport: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onUpdateItem?: (id: string, updates: Partial<SidebarItem>) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -27,12 +30,15 @@ const Sidebar: React.FC<SidebarProps> = ({
   onMoveItem,
   onOpenSettings,
   onExport,
-  onImport
+  onImport,
+  onUpdateItem
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tempName, setTempName] = useState('');
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [folderAuthId, setFolderAuthId] = useState<string | null>(null);
+  const [showFolderAuthModal, setShowFolderAuthModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
@@ -107,9 +113,16 @@ const Sidebar: React.FC<SidebarProps> = ({
       >
         <div className="flex items-center gap-3 w-full min-w-0">
           {isFolder ? (
-            <svg className="w-4 h-4 text-[#9aa0a6] shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-            </svg>
+            <div className="flex items-center gap-1 shrink-0">
+              <svg className="w-4 h-4 text-[#9aa0a6]" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+              </svg>
+              {(item as FolderItem).auth && (item as FolderItem).auth?.type !== 'none' && (item as FolderItem).auth?.type !== 'inherit' && (
+                <svg className="w-3 h-3 text-[#8ab4f8]" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                </svg>
+              )}
+            </div>
           ) : (
             <MethodBadge method={(item as RequestItem).method} />
           )}
@@ -129,6 +142,21 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
+          {isFolder && onUpdateItem && (
+            <button 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                setFolderAuthId(item.id);
+                setShowFolderAuthModal(true);
+              }} 
+              className="p-1 hover:text-[#8ab4f8] text-[#5f6368]" 
+              title="Configure Auth"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </button>
+          )}
           <button onClick={handleEditStart} className="p-1 hover:text-[#e8eaed] text-[#5f6368]" title="Rename">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" strokeWidth="2"/></svg>
           </button>
@@ -222,6 +250,29 @@ const Sidebar: React.FC<SidebarProps> = ({
           <span>v1.0.0</span>
         </div>
       </div>
+
+      {showFolderAuthModal && folderAuthId && onUpdateItem && (() => {
+        const folder = items.find(i => i.id === folderAuthId && i.type === 'folder') as FolderItem | undefined;
+        if (folder) {
+          const folderAuth = folder.auth || { type: 'none', config: {} };
+          return (
+            <AuthConfigModal
+              key={folderAuthId}
+              auth={folderAuth}
+              onSave={(auth: AuthConfig) => {
+                onUpdateItem(folderAuthId, { auth });
+                setShowFolderAuthModal(false);
+                setFolderAuthId(null);
+              }}
+              onCancel={() => {
+                setShowFolderAuthModal(false);
+                setFolderAuthId(null);
+              }}
+            />
+          );
+        }
+        return null;
+      })()}
     </div>
   );
 };

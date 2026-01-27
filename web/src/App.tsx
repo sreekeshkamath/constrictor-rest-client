@@ -167,6 +167,7 @@ const App: React.FC = () => {
       const response = await ExecuteRequest({
         method: activeItem.method,
         url: activeItem.url,
+        requestId: activeItem.id,
         headers: activeItem.headers || [],
         bodyType: activeItem.bodyType,
         body: activeItem.body || '',
@@ -281,6 +282,10 @@ const App: React.FC = () => {
     setItems(prev => prev.map(item => item.id === id ? { ...item, name: newName } : item));
   };
 
+  const handleUpdateItem = (id: string, updates: Partial<SidebarItem>) => {
+    setItems(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
+  };
+
   const handleMoveItem = (itemId: string, targetId: string | null) => {
     if (itemId === targetId) return;
     const isDescendant = (descendantId: string, ancestorId: string, items: SidebarItem[]): boolean => {
@@ -311,6 +316,7 @@ const App: React.FC = () => {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onExport={handleExportWorkspace}
         onImport={handleImportWorkspace}
+        onUpdateItem={handleUpdateItem}
       />
 
       <main className="flex flex-1 overflow-hidden">
@@ -322,6 +328,7 @@ const App: React.FC = () => {
                 onUpdate={updateActiveRequest}
                 onSend={handleSendRequest}
                 isLoading={isLoading}
+                items={items}
               />
             </div>
             <div className="flex-1 min-w-0 bg-[#131314]">
