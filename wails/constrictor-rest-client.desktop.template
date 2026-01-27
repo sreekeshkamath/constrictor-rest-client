@@ -5,6 +5,7 @@ Name=Constrictor REST Client
 Comment=REST API testing tool - Native desktop application
 Exec=constrictor-rest-client
 Icon=constrictor-rest-client
+Path=%h/.local/bin
 Terminal=false
 Categories=Development;Network;
 StartupNotify=true
