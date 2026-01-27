@@ -16,6 +16,33 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'];
   const bodyTypes: BodyType[] = ['none', 'json', 'form-data', 'url-encoded'];
 
+  // Method-specific colors for better visibility
+  const getMethodColor = (method: HttpMethod): string => {
+    const colors: Record<HttpMethod, string> = {
+      GET: 'text-[#81c995]',
+      POST: 'text-[#fdd663]',
+      PUT: 'text-[#8ab4f8]',
+      PATCH: 'text-[#c58af9]',
+      DELETE: 'text-[#f28b82]',
+      OPTIONS: 'text-[#9aa0a6]',
+      HEAD: 'text-[#9aa0a6]'
+    };
+    return colors[method];
+  };
+
+  const getMethodColorValue = (method: HttpMethod): string => {
+    const colors: Record<HttpMethod, string> = {
+      GET: '#81c995',
+      POST: '#fdd663',
+      PUT: '#8ab4f8',
+      PATCH: '#c58af9',
+      DELETE: '#f28b82',
+      OPTIONS: '#9aa0a6',
+      HEAD: '#9aa0a6'
+    };
+    return colors[method];
+  };
+
   // Normalize request data to ensure all required fields are present
   const normalizedRequest: RequestItem = {
     ...request,
@@ -90,7 +117,11 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
             <button
               type="button"
               onClick={() => setIsMethodDropdownOpen(!isMethodDropdownOpen)}
-              className="bg-[#1e1e20] border border-[#3c4043] text-[#e8eaed] text-[13px] font-bold rounded-lg h-10 px-3 pr-8 outline-none focus:border-[#8ab4f8] cursor-pointer flex items-center justify-between min-w-[100px] hover:border-[#8ab4f8] transition-colors"
+              style={{ 
+                backgroundColor: '#1e1e20',
+                color: getMethodColorValue(normalizedRequest.method)
+              }}
+              className={`bg-[#1e1e20] border border-[#3c4043] ${getMethodColor(normalizedRequest.method)} text-[13px] font-bold rounded-lg h-10 px-3 pr-8 outline-none focus:border-[#8ab4f8] cursor-pointer flex items-center justify-between min-w-[100px] hover:border-[#8ab4f8] transition-colors`}
             >
               <span>{normalizedRequest.method}</span>
               <svg 
@@ -103,7 +134,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
               </svg>
             </button>
             {isMethodDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-[#1e1e20] border border-[#3c4043] rounded-lg shadow-lg z-20 min-w-[100px] overflow-hidden">
+              <div className="absolute top-full left-0 mt-1 bg-[#1e1e20] border border-[#3c4043] rounded-lg shadow-lg z-20 min-w-[100px] overflow-hidden" style={{ backgroundColor: '#1e1e20' }}>
                 {methods.map(m => (
                   <button
                     key={m}
@@ -112,7 +143,11 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
                       onUpdate({ method: m });
                       setIsMethodDropdownOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-2 text-[13px] font-bold text-[#e8eaed] hover:bg-[#3c4043] transition-colors ${
+                    style={{ 
+                      color: getMethodColorValue(m),
+                      backgroundColor: normalizedRequest.method === m ? '#3c4043' : 'transparent'
+                    }}
+                    className={`w-full text-left px-3 py-2 text-[13px] font-bold ${getMethodColor(m)} hover:bg-[#3c4043] transition-colors ${
                       normalizedRequest.method === m ? 'bg-[#3c4043]' : ''
                     }`}
                   >
