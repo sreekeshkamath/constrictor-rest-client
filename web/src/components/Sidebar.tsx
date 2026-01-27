@@ -38,18 +38,34 @@ const Sidebar: React.FC<SidebarProps> = ({
   const handleDragStart = (e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('text/plain', id);
     e.dataTransfer.effectAllowed = 'move';
+    e.stopPropagation();
   };
 
   const handleDragOver = (e: React.DragEvent, id: string | null) => {
     e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
     if (id !== dragOverId) setDragOverId(id);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear if we're actually leaving the element (not just moving to a child)
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setDragOverId(null);
+    }
   };
 
   const handleDrop = (e: React.DragEvent, targetId: string | null) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragOverId(null);
     const itemId = e.dataTransfer.getData('text/plain');
-    if (itemId) onMoveItem(itemId, targetId);
+    if (itemId && itemId !== targetId) {
+      onMoveItem(itemId, targetId);
+    }
   };
 
   const filteredItems = useMemo(() => {
@@ -78,10 +94,10 @@ const Sidebar: React.FC<SidebarProps> = ({
       <div
         key={item.id}
         draggable={item.type === 'request'}
-        onDragStart={(e) => handleDragStart(e, item.id)}
-        onDragOver={(e) => isFolder ? handleDragOver(e, item.id) : null}
-        onDragLeave={() => isFolder ? setDragOverId(null) : null}
-        onDrop={(e) => isFolder ? handleDrop(e, item.id) : null}
+        onDragStart={item.type === 'request' ? (e) => handleDragStart(e, item.id) : undefined}
+        onDragOver={isFolder ? (e) => handleDragOver(e, item.id) : undefined}
+        onDragLeave={isFolder ? handleDragLeave : undefined}
+        onDrop={isFolder ? (e) => handleDrop(e, item.id) : undefined}
         onClick={() => !isFolder && onSelect(item.id)}
         className={`group relative flex items-center px-4 py-2 text-[13px] cursor-pointer transition-all duration-150 border-l-4 ${
           isActive
@@ -128,7 +144,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const rootItems = isSearching ? filteredItems : items.filter(i => !i.parentId);
 
   return (
-    <div className="w-72 flex flex-col border-r border-[#3c4043] bg-[#1e1e20] select-none" onDragOver={(e) => handleDragOver(e, null)} onDrop={(e) => handleDrop(e, null)}>
+    <div className="w-72 flex flex-col border-r border-[#3c4043] bg-[#1e1e20] select-none" onDragOver={(e) => handleDragOver(e, null)} onDrop={(e) => handleDrop(e, null)} onDragLeave={handleDragLeave}>
       <div className="p-5 flex items-center justify-between">
         <h1 className="heading-bold text-sm tracking-widest text-[#e8eaed]">CONSTRICTOR</h1>
         <div className="flex gap-1">
@@ -163,7 +179,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             return (
               <div key={item.id}>
                 {renderItem(item)}
-                <div className="ml-6 border-l border-[#3c4043] my-1 space-y-1">
+                <div 
+                  className="ml-6 border-l border-[#3c4043] my-1 space-y-1"
+                  onDragOver={(e) => handleDragOver(e, item.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, item.id)}
+                >
                   {children.map(child => renderItem(child))}
                   {children.length === 0 && <div className="py-1 px-3 text-[11px] text-[#5f6368] italic font-bold">EMPTY</div>}
                 </div>
