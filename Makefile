@@ -124,6 +124,9 @@ wails-build-darwin: wails-build-frontend ## Build Wails app for macOS
 		exit 1; \
 	fi
 	@cd wails && PATH="$$HOME/go/bin:$$PATH" wails build -platform darwin/amd64
+	@echo "$(BLUE)🔓 Removing quarantine attribute to allow app to run...$(NC)"
+	@xattr -d com.apple.quarantine wails/build/bin/constrictor-rest-client.app 2>/dev/null || true
+	@echo "$(GREEN)✅ App built and quarantine removed$(NC)"
 
 wails-build-dmg: wails-build-darwin ## Create DMG file for macOS distribution
 	@echo "$(BLUE)📦 Creating DMG file...$(NC)"

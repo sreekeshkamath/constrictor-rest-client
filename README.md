@@ -203,6 +203,13 @@ ls -la web/dist/
 - Ensure `web/dist/` directory exists (run `make wails-build-frontend` first)
 - Verify `wails.json` has `"dir": "web/dist"` in frontend section
 
+**App opens and closes immediately (macOS Gatekeeper):**
+- The app is unsigned, so macOS may block it
+- **Solution 1 (Recommended)**: Right-click the app → Open → Click "Open" in the dialog
+- **Solution 2**: Remove quarantine: `xattr -d com.apple.quarantine wails/build/bin/constrictor-rest-client.app`
+- **Solution 3**: System Preferences → Security & Privacy → Allow the app
+- **Solution 4**: Run from terminal: `open wails/build/bin/constrictor-rest-client.app`
+
 ## 📁 Project Structure
 
 ```
