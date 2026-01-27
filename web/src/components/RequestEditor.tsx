@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { RequestItem, HttpMethod, Header, BodyType, FormDataItem } from '../types';
+import { RequestItem, HttpMethod, Header, BodyType, FormDataItem, AuthType, AuthConfig } from '../types';
 
 interface RequestEditorProps {
   request: RequestItem;
@@ -9,7 +9,7 @@ interface RequestEditorProps {
 }
 
 const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend, isLoading }) => {
-  const [activeTab, setActiveTab] = useState<'headers' | 'body'>('headers');
+  const [activeTab, setActiveTab] = useState<'auth' | 'headers' | 'body'>('auth');
   const [isMethodDropdownOpen, setIsMethodDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -52,7 +52,73 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
     bodyType: request.bodyType || 'none',
     method: request.method || 'GET',
     url: request.url || '',
+    auth: request.auth || { type: 'none' },
   };
+
+  // Sync auth config to headers when auth type changes
+  useEffect(() => {
+    const auth = normalizedRequest.auth || { type: 'none' };
+    
+    // Skip if auth is none or incomplete
+    if (auth.type === 'none') {
+      // Remove any existing auth headers
+      const otherHeaders = normalizedRequest.headers.filter(
+        h => h.key.toLowerCase() !== 'authorization'
+      );
+      if (otherHeaders.length !== normalizedRequest.headers.length) {
+        onUpdate({ headers: otherHeaders });
+      }
+      return;
+    }
+
+    let authHeader: Header | null = null;
+    let headerKeyToRemove = '';
+
+    if (auth.type === 'bearer' && auth.bearerToken) {
+      authHeader = { key: 'Authorization', value: `Bearer ${auth.bearerToken}`, enabled: true };
+      headerKeyToRemove = 'authorization';
+    } else if (auth.type === 'basic' && auth.basicUsername && auth.basicPassword) {
+      const credentials = btoa(`${auth.basicUsername}:${auth.basicPassword}`);
+      authHeader = { key: 'Authorization', value: `Basic ${credentials}`, enabled: true };
+      headerKeyToRemove = 'authorization';
+    } else if (auth.type === 'apikey' && auth.apiKeyKey && auth.apiKeyValue && auth.apiKeyLocation === 'header') {
+      authHeader = { key: auth.apiKeyKey, value: auth.apiKeyValue, enabled: true };
+      headerKeyToRemove = auth.apiKeyKey;
+    }
+
+    // Only update headers if we have a header to add (skip query params)
+    if (authHeader) {
+      // Remove old auth headers
+      const otherHeaders = normalizedRequest.headers.filter(
+        h => h.key.toLowerCase() !== headerKeyToRemove.toLowerCase()
+      );
+      
+      // Check if we need to update
+      const existingAuthHeader = normalizedRequest.headers.find(
+        h => h.key.toLowerCase() === headerKeyToRemove.toLowerCase()
+      );
+      
+      if (!existingAuthHeader || existingAuthHeader.value !== authHeader.value) {
+        onUpdate({ headers: [...otherHeaders, authHeader] });
+      }
+    } else if (auth.type === 'apikey' && auth.apiKeyLocation === 'query') {
+      // For query params, just remove any existing header with this key
+      const otherHeaders = normalizedRequest.headers.filter(
+        h => h.key !== auth.apiKeyKey
+      );
+      if (otherHeaders.length !== normalizedRequest.headers.length) {
+        onUpdate({ headers: otherHeaders });
+      }
+    }
+  }, [
+    normalizedRequest.auth?.type,
+    normalizedRequest.auth?.bearerToken,
+    normalizedRequest.auth?.basicUsername,
+    normalizedRequest.auth?.basicPassword,
+    normalizedRequest.auth?.apiKeyKey,
+    normalizedRequest.auth?.apiKeyValue,
+    normalizedRequest.auth?.apiKeyLocation
+  ]);
 
   const addHeader = () => {
     const newHeaders = [...normalizedRequest.headers, { key: '', value: '', enabled: true }];
@@ -187,6 +253,14 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
 
       <div className="flex border-b border-[#3c4043] px-6 gap-6">
         <button
+          onClick={() => setActiveTab('auth')}
+          className={`py-4 text-[12px] font-bold uppercase tracking-widest border-b-2 transition-all ${
+            activeTab === 'auth' ? 'border-[#8ab4f8] text-[#8ab4f8]' : 'border-transparent text-[#9aa0a6] hover:text-[#e8eaed]'
+          }`}
+        >
+          Auth
+        </button>
+        <button
           onClick={() => setActiveTab('headers')}
           className={`py-4 text-[12px] font-bold uppercase tracking-widest border-b-2 transition-all ${
             activeTab === 'headers' ? 'border-[#8ab4f8] text-[#8ab4f8]' : 'border-transparent text-[#9aa0a6] hover:text-[#e8eaed]'
@@ -205,7 +279,137 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
-        {activeTab === 'headers' ? (
+        {activeTab === 'auth' ? (
+          <div className="space-y-6">
+            <div className="flex gap-4 p-1 bg-[#1e1e20] rounded-lg w-fit">
+              {(['none', 'bearer', 'basic', 'apikey'] as AuthType[]).map(type => (
+                <button
+                  key={type}
+                  onClick={() => onUpdate({ auth: { ...normalizedRequest.auth, type } })}
+                  className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded-md transition-all ${
+                    normalizedRequest.auth?.type === type
+                      ? 'bg-[#8ab4f8] text-[#131314]'
+                      : 'text-[#9aa0a6] hover:text-[#e8eaed]'
+                  }`}
+                >
+                  {type === 'apikey' ? 'API Key' : type.charAt(0).toUpperCase() + type.slice(1)}
+                </button>
+              ))}
+            </div>
+
+            {normalizedRequest.auth?.type === 'none' && (
+              <div className="flex items-center justify-center opacity-20 py-12">
+                <p className="text-[12px] font-bold uppercase tracking-[0.2em]">No Authentication</p>
+              </div>
+            )}
+
+            {normalizedRequest.auth?.type === 'bearer' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[11px] text-[#5f6368] uppercase font-bold tracking-widest mb-2">
+                    Bearer Token
+                  </label>
+                  <input
+                    type="password"
+                    className="w-full bg-[#1e1e20] border border-[#3c4043] rounded-lg px-4 py-3 text-[14px] outline-none focus:border-[#8ab4f8] text-[#e8eaed]"
+                    placeholder="Enter bearer token"
+                    value={normalizedRequest.auth?.bearerToken || ''}
+                    onChange={(e) => onUpdate({ auth: { ...normalizedRequest.auth, bearerToken: e.target.value } })}
+                  />
+                </div>
+                <p className="text-[11px] text-[#5f6368] italic">
+                  This will automatically add an Authorization header with Bearer token
+                </p>
+              </div>
+            )}
+
+            {normalizedRequest.auth?.type === 'basic' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[11px] text-[#5f6368] uppercase font-bold tracking-widest mb-2">
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full bg-[#1e1e20] border border-[#3c4043] rounded-lg px-4 py-3 text-[14px] outline-none focus:border-[#8ab4f8] text-[#e8eaed]"
+                    placeholder="Enter username"
+                    value={normalizedRequest.auth?.basicUsername || ''}
+                    onChange={(e) => onUpdate({ auth: { ...normalizedRequest.auth, basicUsername: e.target.value } })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-[#5f6368] uppercase font-bold tracking-widest mb-2">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    className="w-full bg-[#1e1e20] border border-[#3c4043] rounded-lg px-4 py-3 text-[14px] outline-none focus:border-[#8ab4f8] text-[#e8eaed]"
+                    placeholder="Enter password"
+                    value={normalizedRequest.auth?.basicPassword || ''}
+                    onChange={(e) => onUpdate({ auth: { ...normalizedRequest.auth, basicPassword: e.target.value } })}
+                  />
+                </div>
+                <p className="text-[11px] text-[#5f6368] italic">
+                  This will automatically add an Authorization header with Basic authentication
+                </p>
+              </div>
+            )}
+
+            {normalizedRequest.auth?.type === 'apikey' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[11px] text-[#5f6368] uppercase font-bold tracking-widest mb-2">
+                    Key Name
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full bg-[#1e1e20] border border-[#3c4043] rounded-lg px-4 py-3 text-[14px] outline-none focus:border-[#8ab4f8] text-[#e8eaed]"
+                    placeholder="e.g., X-API-Key, Api-Key"
+                    value={normalizedRequest.auth?.apiKeyKey || ''}
+                    onChange={(e) => onUpdate({ auth: { ...normalizedRequest.auth, apiKeyKey: e.target.value } })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-[#5f6368] uppercase font-bold tracking-widest mb-2">
+                    API Key Value
+                  </label>
+                  <input
+                    type="password"
+                    className="w-full bg-[#1e1e20] border border-[#3c4043] rounded-lg px-4 py-3 text-[14px] outline-none focus:border-[#8ab4f8] text-[#e8eaed]"
+                    placeholder="Enter API key"
+                    value={normalizedRequest.auth?.apiKeyValue || ''}
+                    onChange={(e) => onUpdate({ auth: { ...normalizedRequest.auth, apiKeyValue: e.target.value } })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-[#5f6368] uppercase font-bold tracking-widest mb-2">
+                    Location
+                  </label>
+                  <div className="flex gap-4 p-1 bg-[#1e1e20] rounded-lg w-fit">
+                    {(['header', 'query'] as const).map(location => (
+                      <button
+                        key={location}
+                        onClick={() => onUpdate({ auth: { ...normalizedRequest.auth, apiKeyLocation: location } })}
+                        className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded-md transition-all ${
+                          (normalizedRequest.auth?.apiKeyLocation || 'header') === location
+                            ? 'bg-[#8ab4f8] text-[#131314]'
+                            : 'text-[#9aa0a6] hover:text-[#e8eaed]'
+                        }`}
+                      >
+                        {location.charAt(0).toUpperCase() + location.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-[11px] text-[#5f6368] italic">
+                  {normalizedRequest.auth?.apiKeyLocation === 'query' 
+                    ? 'This will add the API key as a query parameter in the URL'
+                    : 'This will automatically add the API key as a header'}
+                </p>
+              </div>
+            )}
+          </div>
+        ) : activeTab === 'headers' ? (
           <div className="space-y-2">
             <div className="grid grid-cols-[30px_1fr_1fr_40px] gap-3 mb-2 px-1">
               <div />
