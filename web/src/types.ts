@@ -25,6 +25,7 @@ export interface RequestItem {
   parentId?: string | null;
   type: 'request';
   createdAt: number;
+  auth?: AuthConfig;
 }
 
 export interface FolderItem {
@@ -33,6 +34,7 @@ export interface FolderItem {
   parentId?: string | null;
   type: 'folder';
   createdAt: number;
+  auth?: AuthConfig;
 }
 
 export type SidebarItem = RequestItem | FolderItem;
@@ -48,4 +50,9 @@ export interface ResponseData {
 
 export interface AppSettings {
   // Reserved for future settings
+}
+
+export interface AuthConfig {
+  type: 'none' | 'inherit' | 'bearer' | 'basic' | 'apikey' | 'oauth2' | 'oauth1' | 'digest' | 'ntlm' | 'aws' | 'hawk' | 'asap' | 'netrc';
+  config: Record<string, any>;
 }
