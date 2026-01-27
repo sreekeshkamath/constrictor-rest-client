@@ -170,7 +170,7 @@ type App struct {
 }
 
 // NewApp creates a new App application struct
-func NewApp() *App {
+func NewApp() (*App, error) {
 	cfg := config.Load()
 	store := storage.NewFileStore(cfg.WorkspacePath())
 	exec := executor.NewHTTPExecutor(executor.Config{
@@ -181,7 +181,7 @@ func NewApp() *App {
 	return &App{
 		store:    store,
 		executor: exec,
-	}
+	}, nil
 }
 
 // OnStartup is called when the app starts. The context is saved

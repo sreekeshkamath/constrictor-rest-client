@@ -43,6 +43,9 @@ const App: React.FC = () => {
   // Load workspace from backend
   useEffect(() => {
     const loadWorkspace = async () => {
+      // Wait a bit for Wails runtime to be ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       try {
         const items = await GetWorkspace();
 
