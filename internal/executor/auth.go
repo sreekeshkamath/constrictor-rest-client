@@ -3,7 +3,6 @@ package executor
 import (
 	"encoding/base64"
 	"fmt"
-	"net/http"
 	"net/url"
 	"strings"
 
@@ -73,8 +72,6 @@ func (r *AuthResolver) GenerateHeaders(auth *domain.AuthConfig, reqMethod, reqUR
 		return make(map[string]string), nil
 	}
 
-	headers := make(map[string]string)
-
 	switch auth.Type {
 	case "bearer":
 		return r.generateBearerToken(auth)
@@ -138,7 +135,6 @@ func (r *AuthResolver) generateAPIKey(auth *domain.AuthConfig) (map[string]strin
 		return nil, fmt.Errorf("key and value are required for API key auth")
 	}
 
-	location := "header"
 	if loc, ok := auth.Config["location"].(string); ok && loc == "query" {
 		// Query params are handled separately, return empty headers
 		return make(map[string]string), nil
@@ -171,7 +167,7 @@ func (r *AuthResolver) generateOAuth1(auth *domain.AuthConfig, method, reqURL st
 	consumerKey, _ := auth.Config["consumerKey"].(string)
 	consumerSecret, _ := auth.Config["consumerSecret"].(string)
 	token, _ := auth.Config["token"].(string)
-	tokenSecret, _ := auth.Config["tokenSecret"].(string)
+	_ = auth.Config["tokenSecret"] // Reserved for future use
 
 	if consumerKey == "" || consumerSecret == "" {
 		return nil, fmt.Errorf("consumerKey and consumerSecret are required for OAuth 1.0")
@@ -198,7 +194,7 @@ func (r *AuthResolver) generateOAuth1(auth *domain.AuthConfig, method, reqURL st
 // generateDigestAuth generates Digest authentication header (simplified)
 func (r *AuthResolver) generateDigestAuth(auth *domain.AuthConfig) (map[string]string, error) {
 	username, ok1 := auth.Config["username"].(string)
-	password, ok2 := auth.Config["password"].(string)
+	_, ok2 := auth.Config["password"].(string)
 	if !ok1 || !ok2 || username == "" {
 		return nil, fmt.Errorf("username and password are required for digest auth")
 	}
@@ -212,7 +208,7 @@ func (r *AuthResolver) generateDigestAuth(auth *domain.AuthConfig) (map[string]s
 // generateNTLM generates NTLM authentication (simplified)
 func (r *AuthResolver) generateNTLM(auth *domain.AuthConfig) (map[string]string, error) {
 	username, ok1 := auth.Config["username"].(string)
-	password, ok2 := auth.Config["password"].(string)
+	_, ok2 := auth.Config["password"].(string)
 	if !ok1 || !ok2 || username == "" {
 		return nil, fmt.Errorf("username and password are required for NTLM auth")
 	}
