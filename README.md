@@ -296,6 +296,7 @@ cd web && npm run dev
 - `make wails-build-windows` - Build for Windows
 - `make wails-build-linux` - Build for Linux
 - `make wails-build-darwin` - Build for macOS
+- `make wails-build-dmg` - Create DMG file for macOS distribution
 - `make wails-clean` - Clean Wails build artifacts
 
 ## 🔐 Google Drive Backup
