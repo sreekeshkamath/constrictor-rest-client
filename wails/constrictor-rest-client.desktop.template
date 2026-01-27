@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Constrictor REST Client
+Comment=REST API testing tool - Native desktop application
+Exec=constrictor-rest-client
+Icon=constrictor-rest-client
+Terminal=false
+Categories=Development;Network;
+StartupNotify=true

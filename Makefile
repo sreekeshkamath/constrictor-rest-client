@@ -180,3 +180,26 @@ wails-clean: ## Clean Wails build artifacts
 	@rm -f wails/frontend
 	@rm -f *.dmg
 	@rm -rf *-dmg
+
+wails-install-linux: wails-build-linux ## Build and install Linux app to ~/.local
+	@echo "$(BLUE)📦 Installing Linux app...$(NC)"
+	@mkdir -p $$HOME/.local/bin
+	@mkdir -p $$HOME/.local/share/applications
+	@cp wails/build/bin/constrictor-rest-client $$HOME/.local/bin/constrictor-rest-client
+	@chmod +x $$HOME/.local/bin/constrictor-rest-client
+	@echo "[Desktop Entry]" > $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@echo "Version=1.0" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@echo "Type=Application" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@echo "Name=Constrictor REST Client" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@echo "Comment=REST API testing tool - Native desktop application" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@echo "Exec=$$HOME/.local/bin/constrictor-rest-client" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@echo "Icon=constrictor-rest-client" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@echo "Terminal=false" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@echo "Categories=Development;Network;" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@echo "StartupNotify=true" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@if command -v update-desktop-database >/dev/null 2>&1; then \
+		update-desktop-database $$HOME/.local/share/applications 2>/dev/null || true; \
+	fi
+	@echo "$(GREEN)✅ App installed to ~/.local/bin/constrictor-rest-client$(NC)"
+	@echo "$(GREEN)✅ Desktop entry installed to ~/.local/share/applications/$(NC)"
+	@echo "$(BLUE)💡 You can now find 'Constrictor REST Client' in your application menu$(NC)"
