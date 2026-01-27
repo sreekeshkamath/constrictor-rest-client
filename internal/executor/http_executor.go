@@ -211,11 +211,29 @@ func (e *HTTPExecutor) ExecuteWithAuth(ctx context.Context, req *Request, reques
 	var authHeaders map[string]string
 	if requestItem != nil && workspace != nil {
 		resolvedAuth, err := e.authResolver.ResolveAuth(requestItem, workspace)
-		if err == nil {
+		if err != nil {
+			// Log auth resolution error but continue without auth
+			fmt.Printf("Warning: Failed to resolve auth for request %s: %v\n", req.RequestID, err)
+		} else if resolvedAuth != nil && resolvedAuth.Type != "none" {
 			generatedHeaders, err := e.authResolver.GenerateHeaders(resolvedAuth, req.Method, req.URL)
-			if err == nil {
+			if err != nil {
+				// Log header generation error but continue without auth headers
+				fmt.Printf("Warning: Failed to generate auth headers for request %s (type: %s): %v\n", req.RequestID, resolvedAuth.Type, err)
+				if resolvedAuth.Type == "bearer" && resolvedAuth.Config != nil {
+					fmt.Printf("Debug: Bearer auth config: %+v\n", resolvedAuth.Config)
+				}
+			} else {
 				authHeaders = generatedHeaders
+				if len(authHeaders) > 0 {
+					fmt.Printf("Debug: Generated %d auth headers for request %s (type: %s)\n", len(authHeaders), req.RequestID, resolvedAuth.Type)
+				}
 			}
+		} else {
+			fmt.Printf("Debug: No auth config for request %s (resolvedAuth: %v)\n", req.RequestID, resolvedAuth)
+		}
+	} else {
+		if req.RequestID != "" {
+			fmt.Printf("Debug: Request %s has no requestItem or workspace for auth resolution\n", req.RequestID)
 		}
 	}
 

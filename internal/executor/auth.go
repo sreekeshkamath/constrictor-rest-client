@@ -105,10 +105,32 @@ func (r *AuthResolver) GenerateHeaders(auth *domain.AuthConfig, reqMethod, reqUR
 
 // generateBearerToken generates Authorization header with Bearer token
 func (r *AuthResolver) generateBearerToken(auth *domain.AuthConfig) (map[string]string, error) {
-	token, ok := auth.Config["token"].(string)
-	if !ok || token == "" {
-		return nil, fmt.Errorf("bearer token is required")
+	if auth.Config == nil {
+		return nil, fmt.Errorf("auth config is nil")
 	}
+	
+	// Extract token from config - handle JSON unmarshaling which may produce different types
+	tokenVal, exists := auth.Config["token"]
+	if !exists {
+		return nil, fmt.Errorf("bearer token is required (key 'token' not found in config)")
+	}
+	
+	// Convert to string - handle various JSON types
+	var token string
+	switch v := tokenVal.(type) {
+	case string:
+		token = v
+	case []byte:
+		token = string(v)
+	default:
+		// Try fmt.Sprintf as fallback for other types
+		token = fmt.Sprintf("%v", v)
+	}
+	
+	if token == "" {
+		return nil, fmt.Errorf("bearer token is required (token value is empty)")
+	}
+	
 	return map[string]string{
 		"Authorization": "Bearer " + token,
 	}, nil
