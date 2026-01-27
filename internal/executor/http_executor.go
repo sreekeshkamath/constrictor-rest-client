@@ -220,14 +220,22 @@ func (e *HTTPExecutor) ExecuteWithAuth(ctx context.Context, req *Request, reques
 	}
 
 	// Merge auth headers with manual headers (auth takes precedence)
+	// Use canonical header names (Go's http package canonicalizes headers)
 	mergedHeaders := make(map[string]string)
+	
+	// Add auth headers first
 	for key, value := range authHeaders {
-		mergedHeaders[key] = value
+		// Canonicalize header key (first letter and letters after hyphens are uppercase)
+		canonicalKey := http.CanonicalHeaderKey(key)
+		mergedHeaders[canonicalKey] = value
 	}
+	
+	// Add manual headers, skipping any that conflict with auth headers (case-insensitive check)
 	for key, value := range req.Headers {
-		// Only add if not already set by auth
-		if _, exists := mergedHeaders[key]; !exists {
-			mergedHeaders[key] = value
+		canonicalKey := http.CanonicalHeaderKey(key)
+		// Only add if not already set by auth (case-insensitive check)
+		if _, exists := mergedHeaders[canonicalKey]; !exists {
+			mergedHeaders[canonicalKey] = value
 		}
 	}
 
@@ -343,7 +351,8 @@ func (e *HTTPExecutor) buildHTTPRequestWithHeaders(ctx context.Context, req *Req
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// Set headers
+	// Set headers (http.Header.Set will canonicalize the keys automatically)
+	// Set all headers, including empty values (some headers might intentionally be empty)
 	for key, value := range headers {
 		httpReq.Header.Set(key, value)
 	}
