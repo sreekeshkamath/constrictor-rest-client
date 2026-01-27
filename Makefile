@@ -65,7 +65,7 @@ WAILS_CMD := $(shell which wails 2>/dev/null || [ -f ~/go/bin/wails ] && echo ~/
 # Find Wails CLI - check PATH first, then common Go bin locations
 WAILS_CMD := $(shell command -v wails 2>/dev/null || [ -f ~/go/bin/wails ] && echo ~/go/bin/wails || [ -n "$$GOPATH" ] && [ -f $$GOPATH/bin/wails ] && echo $$GOPATH/bin/wails || echo wails)
 
-wails-dev: wails-build-frontend ## Run Wails in development mode with hot reload
+wails-dev: ## Run Wails in development mode with hot reload
 	@echo "$(BLUE)🚀 Starting Wails development mode...$(NC)"
 	@if ! command -v wails >/dev/null 2>&1 && [ ! -f ~/go/bin/wails ]; then \
 		echo "$(YELLOW)⚠️  Wails CLI not found. Please install with:$(NC)"; \
@@ -73,7 +73,18 @@ wails-dev: wails-build-frontend ## Run Wails in development mode with hot reload
 		echo "$(YELLOW)   Then add ~/go/bin to your PATH$(NC)"; \
 		exit 1; \
 	fi
+	@echo "$(BLUE)📦 Building frontend for initial load...$(NC)"
+	@cd web && npm run build
+	@rm -rf wails/frontend && cp -r web/dist wails/frontend
+	@echo "$(GREEN)✅ Frontend built. Starting Wails dev mode...$(NC)"
+	@echo "$(YELLOW)💡 Note: Frontend changes require manual rebuild. Run 'make wails-rebuild-frontend' in another terminal to rebuild.$(NC)"
 	@cd wails && PATH="$$HOME/go/bin:$$PATH" wails dev
+
+wails-rebuild-frontend: ## Rebuild frontend for Wails (run this when frontend files change)
+	@echo "$(BLUE)🏗️  Rebuilding frontend...$(NC)"
+	@cd web && npm run build
+	@rm -rf wails/frontend && cp -r web/dist wails/frontend
+	@echo "$(GREEN)✅ Frontend rebuilt. Refresh the Wails app to see changes.$(NC)"
 
 wails-build: wails-build-frontend ## Build Wails app for current platform
 	@echo "$(BLUE)🏗️  Building Wails app for current platform...$(NC)"

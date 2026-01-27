@@ -3,10 +3,10 @@
   "name": "constrictor-rest-client",
   "outputfilename": "constrictor-rest-client",
   "frontend": {
-    "dir": "web/dist",
-    "install": "",
-    "build": "",
-    "dev": "",
+    "dir": "../web/dist",
+    "install": "cd ../web && npm install",
+    "build": "cd ../web && npm run build",
+    "dev": "cd ../web && npm run dev",
     "bridge": "",
     "serve": ""
   },
