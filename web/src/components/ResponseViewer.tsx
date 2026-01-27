@@ -119,17 +119,17 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({ response, isLoading, er
         <button onClick={() => setActiveTab('headers')} className={`py-4 text-[12px] font-bold uppercase tracking-widest border-b-2 transition-all ${activeTab === 'headers' ? 'border-[#8ab4f8] text-[#8ab4f8]' : 'border-transparent text-[#9aa0a6] hover:text-[#e8eaed]'}`}>Headers</button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-hidden p-6">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6">
         {activeTab === 'body' ? (
-          <div className="h-full bg-[#1e1e20] p-6 rounded-xl border border-[#3c4043] font-mono overflow-y-auto overflow-x-auto">
+          <div className="bg-[#1e1e20] p-6 rounded-xl border border-[#3c4043] font-mono">
             {typeof parsedBody === 'object' ? (
               <JsonNode data={parsedBody} />
             ) : (
-              <pre className="whitespace-pre-wrap text-[14px] text-[#e8eaed] leading-relaxed break-words overflow-wrap-anywhere max-w-full">{parsedBody}</pre>
+              <pre className="whitespace-pre-wrap text-[14px] text-[#e8eaed] leading-relaxed break-words overflow-wrap-anywhere">{parsedBody}</pre>
             )}
           </div>
         ) : (
-          <div className="h-full overflow-y-auto space-y-1 font-mono text-[13px]">
+          <div className="space-y-1 font-mono text-[13px]">
             {Object.entries(response.headers).map(([key, value]) => (
               <div key={key} className="flex border-b border-[#3c4043]/50 py-3 group hover:bg-[#1e1e20] px-2 transition-colors">
                 <span className="w-1/3 font-bold text-[#9aa0a6] select-all uppercase tracking-tighter text-[11px] self-center flex-shrink-0">{key}</span>
