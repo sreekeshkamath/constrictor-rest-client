@@ -132,7 +132,7 @@ const App: React.FC = () => {
   };
 
   const handleSendRequest = async () => {
-    if (!activeItem) return;
+    if (!activeItem || !isRequestItem(activeItem)) return;
     setIsLoading(true);
     setError(null);
     setResponse(null);
@@ -141,14 +141,15 @@ const App: React.FC = () => {
       const response = await ExecuteRequest({
         method: activeItem.method,
         url: activeItem.url,
-        headers: activeItem.headers,
+        headers: activeItem.headers || [],
         bodyType: activeItem.bodyType,
-        body: activeItem.body,
-        formData: activeItem.formData
+        body: activeItem.body || '',
+        formData: activeItem.formData || []
       });
 
       setResponse(response);
     } catch (err: any) {
+      console.error('ExecuteRequest error:', err);
       setError(err.message || "Failed to execute request");
     } finally {
       setIsLoading(false);

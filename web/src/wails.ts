@@ -118,7 +118,24 @@ export async function ExecuteRequest(req: ExecuteRequestInput): Promise<Response
     throw new Error('Wails runtime is not available. This app must be run in Wails.');
   }
   try {
-    const result = await app.ExecuteRequest(req);
+    // Validate request before sending
+    if (!req.method || !req.url) {
+      throw new Error('Method and URL are required');
+    }
+    
+    // Ensure arrays are defined
+    const requestData: ExecuteRequestInput = {
+      method: req.method,
+      url: req.url,
+      headers: req.headers || [],
+      bodyType: req.bodyType || 'none',
+      body: req.body || '',
+      formData: req.formData || []
+    };
+    
+    console.log('Calling ExecuteRequest with:', requestData);
+    const result = await app.ExecuteRequest(requestData);
+    console.log('ExecuteRequest result:', result);
     
     // Convert ExecutionResult to ResponseData format expected by frontend
     if (result.error) {
@@ -134,6 +151,7 @@ export async function ExecuteRequest(req: ExecuteRequestInput): Promise<Response
       size: result.sizeBytes,
     };
   } catch (error: any) {
+    console.error('ExecuteRequest error details:', error);
     // If it's already an Error with a message, rethrow it
     if (error instanceof Error) {
       throw error;
