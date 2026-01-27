@@ -26,16 +26,20 @@ type SidebarItem struct {
 	BodyType *string         `json:"bodyType,omitempty"` // "none", "json", "form-data", "url-encoded"
 	Body     *string         `json:"body,omitempty"`
 	FormData []domain.FormDataItem `json:"formData,omitempty"`
+
+	// Auth configuration (applies to both requests and folders)
+	Auth *domain.AuthConfig `json:"auth,omitempty"`
 }
 
 // ExecuteRequestInput represents the input for ExecuteRequest matching frontend format
 type ExecuteRequestInput struct {
-	Method   string             `json:"method"`
-	URL      string             `json:"url"`
-	Headers  []domain.Header    `json:"headers"`
-	BodyType string             `json:"bodyType"` // "none", "json", "form-data", "url-encoded"
-	Body     string             `json:"body"`
-	FormData []domain.FormDataItem `json:"formData"`
+	Method    string             `json:"method"`
+	URL       string             `json:"url"`
+	Headers   []domain.Header    `json:"headers"`
+	BodyType  string             `json:"bodyType"` // "none", "json", "form-data", "url-encoded"
+	Body      string             `json:"body"`
+	FormData  []domain.FormDataItem `json:"formData"`
+	RequestID string             `json:"requestId,omitempty"` // ID of the request item for auth resolution
 }
 
 // convertWorkspaceToItems converts a domain.Workspace to an array of SidebarItem
@@ -79,6 +83,9 @@ func convertWorkspaceToItems(workspace *domain.Workspace) []SidebarItem {
 			sidebarItem.Headers = item.Headers
 			sidebarItem.FormData = item.FormData
 		}
+
+		// Copy auth config (applies to both requests and folders)
+		sidebarItem.Auth = item.Auth
 
 		items = append(items, sidebarItem)
 	}
@@ -130,6 +137,9 @@ func convertItemsToWorkspace(items []SidebarItem) *domain.Workspace {
 			workspaceItem.Headers = item.Headers
 			workspaceItem.FormData = item.FormData
 		}
+
+		// Copy auth config (applies to both requests and folders)
+		workspaceItem.Auth = item.Auth
 
 		workspaceItems = append(workspaceItems, workspaceItem)
 	}
@@ -229,13 +239,38 @@ func (a *App) ExecuteRequest(input *ExecuteRequestInput) (*executor.ExecutionRes
 
 	// Create executor request
 	req := &executor.Request{
-		Method:   input.Method,
-		URL:      input.URL,
-		Headers:  headers,
-		BodyType: input.BodyType,
-		Body:     input.Body,
-		FormData: formData,
+		Method:    input.Method,
+		URL:       input.URL,
+		Headers:   headers,
+		BodyType:  input.BodyType,
+		Body:      input.Body,
+		FormData:  formData,
+		RequestID: input.RequestID,
 	}
 
+	// Load workspace for auth resolution
+	workspace, err := a.store.Load()
+	if err != nil {
+		return nil, err
+	}
+
+	// Find the request item if requestId is provided
+	var requestItem *domain.WorkspaceItem
+	if input.RequestID != "" {
+		for i := range workspace.Items {
+			if workspace.Items[i].ID == input.RequestID && workspace.Items[i].Type == "request" {
+				requestItem = &workspace.Items[i]
+				break
+			}
+		}
+	}
+
+	// Use ExecuteWithAuth if we have an HTTPExecutor
+	httpExecutor, ok := a.executor.(*executor.HTTPExecutor)
+	if ok {
+		return httpExecutor.ExecuteWithAuth(a.ctx, req, requestItem, workspace)
+	}
+
+	// Fallback to regular Execute
 	return a.executor.Execute(a.ctx, req)
 }

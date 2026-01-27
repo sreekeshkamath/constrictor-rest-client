@@ -25,6 +25,7 @@ export interface ExecuteRequestInput {
     value: string;
     enabled: boolean;
   }>;
+  requestId?: string; // ID of the request item for auth resolution
 }
 
 /**
