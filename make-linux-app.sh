@@ -31,6 +31,7 @@ Name=Constrictor REST Client
 Comment=REST API testing tool - Native desktop application
 Exec=${BIN_INSTALL_DIR}/${APP_NAME}
 Icon=${APP_NAME}
+Path=${BIN_INSTALL_DIR}
 Terminal=false
 Categories=Development;Network;
 StartupNotify=true
@@ -57,10 +58,24 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     cp "${DESKTOP_FILE}" "${INSTALL_DIR}/${APP_NAME}.desktop"
     echo "✅ Desktop entry installed to ${INSTALL_DIR}/${APP_NAME}.desktop"
     
+    # Install icon
+    ICON_DIR="${HOME}/.local/share/icons/hicolor/256x256/apps"
+    mkdir -p "${ICON_DIR}"
+    if [ -f "wails/appicon.svg" ]; then
+        cp "wails/appicon.svg" "${ICON_DIR}/${APP_NAME}.svg"
+        echo "✅ Icon installed to ${ICON_DIR}/${APP_NAME}.svg"
+    fi
+    
     # Update desktop database
     if command -v update-desktop-database >/dev/null 2>&1; then
         update-desktop-database "${INSTALL_DIR}" 2>/dev/null || true
         echo "✅ Desktop database updated"
+    fi
+    
+    # Update icon cache
+    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+        gtk-update-icon-cache -f "${HOME}/.local/share/icons/hicolor" 2>/dev/null || true
+        echo "✅ Icon cache updated"
     fi
     
     echo ""

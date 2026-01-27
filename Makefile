@@ -197,8 +197,17 @@ wails-install-linux: wails-build-linux ## Build and install Linux app to ~/.loca
 	@echo "Terminal=false" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
 	@echo "Categories=Development;Network;" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
 	@echo "StartupNotify=true" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@echo "Path=$$HOME/.local/bin" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@mkdir -p $$HOME/.local/share/icons/hicolor/256x256/apps
+	@if [ -f "wails/appicon.svg" ]; then \
+		cp wails/appicon.svg $$HOME/.local/share/icons/hicolor/256x256/apps/constrictor-rest-client.svg; \
+		echo "$(GREEN)✅ Icon installed$(NC)"; \
+	fi
 	@if command -v update-desktop-database >/dev/null 2>&1; then \
 		update-desktop-database $$HOME/.local/share/applications 2>/dev/null || true; \
+	fi
+	@if command -v gtk-update-icon-cache >/dev/null 2>&1; then \
+		gtk-update-icon-cache -f $$HOME/.local/share/icons/hicolor 2>/dev/null || true; \
 	fi
 	@echo "$(GREEN)✅ App installed to ~/.local/bin/constrictor-rest-client$(NC)"
 	@echo "$(GREEN)✅ Desktop entry installed to ~/.local/share/applications/$(NC)"
