@@ -190,56 +190,78 @@ This file tracks progress through the Wails native desktop app implementation pl
 
 ---
 
-## Step 4: Create Wails TypeScript Bindings
+## [2026-01-27] - Step 4: Create Wails TypeScript Bindings
 
-**Status**: ⏳ Pending
+**Status**: ✅ Completed
 
 **Completed:**
-- (To be filled after completion)
+- Created `web/src/wails.ts` with TypeScript definitions for Wails runtime
+- Defined `App` interface matching Go struct methods
+- Defined `ExecuteRequestInput` and `ExecutionResult` interfaces matching Go structs
+- Added `isWailsRuntime()` function to detect if Wails runtime is available
+- Created wrapper functions:
+  - `GetWorkspace()` - Returns Promise<SidebarItem[]>
+  - `SaveWorkspace(items)` - Saves workspace items
+  - `ExecuteRequest(req)` - Executes HTTP request and returns ResponseData
+- Convert ExecutionResult to ResponseData format expected by frontend
+- Added proper error handling with meaningful error messages
+- All functions check for Wails runtime availability before use
 
 **Files Changed:**
-- (To be filled after completion)
+- `web/src/wails.ts` - Created new file with Wails bindings
 
 **Tests Added:**
-- (To be filled after completion)
+- Manual testing required (TypeScript compilation check)
 
 **How to Verify:**
 - Check TypeScript compilation: `cd web && npm run build`
 - Verify no type errors
 - Check that functions are exported correctly
+- Verify runtime detection works
 
 **Next Steps:**
 - Step 5: Update Frontend App.tsx to Use Wails Bindings
 
 **Blockers/Notes:**
-- (To be filled if any issues arise)
+- TypeScript compilation should be verified before proceeding
 
 ---
 
-## Step 5: Update Frontend App.tsx to Use Wails Bindings
+## [2026-01-27] - Step 5: Update Frontend App.tsx to Use Wails Bindings
 
-**Status**: ⏳ Pending
+**Status**: ✅ Completed
 
 **Completed:**
-- (To be filled after completion)
+- Removed `API_BASE = '/api'` constant (no longer needed)
+- Imported `GetWorkspace`, `SaveWorkspace`, and `ExecuteRequest` from `wails.ts`
+- Updated `loadWorkspace` function to use `GetWorkspace()` instead of `fetch('/api/workspace')`
+- Updated `saveWorkspace` function to use `SaveWorkspace(items)` instead of `fetch('/api/workspace', PUT)`
+- Updated `handleSendRequest` function to use `ExecuteRequest()` instead of `fetch('/api/execute')`
+- Simplified error handling (Wails bindings handle errors internally)
+- Maintained exact same UI behavior and state management
+- Preserved debounce logic for workspace saving (500ms delay)
 
 **Files Changed:**
-- (To be filled after completion)
+- `web/src/App.tsx` - Replaced all HTTP fetch calls with Wails bindings
 
 **Tests Added:**
-- (To be filled after completion)
+- Manual testing required (Wails dev mode)
 
 **How to Verify:**
 - Build frontend: `cd web && npm run build`
 - Check for TypeScript errors
 - Test in Wails dev mode: `wails dev`
 - Verify all three main operations: load, save, execute
+- Verify workspace loads on startup
+- Verify workspace saves when items change
+- Verify HTTP requests execute correctly
 
 **Next Steps:**
 - Step 6: Update Wails Configuration
 
 **Blockers/Notes:**
-- (To be filled if any issues arise)
+- Frontend now requires Wails runtime (no HTTP fallback)
+- All functionality should work identically to web version
 
 ---
 
