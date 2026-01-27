@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/constrictor/constrictor-rest-client/internal/config"
@@ -208,6 +209,33 @@ func (a *App) SaveWorkspace(items []SidebarItem) error {
 
 // ExecuteRequest executes an HTTP request
 // This method is exposed to the frontend via Wails bindings
-func (a *App) ExecuteRequest(req *executor.Request) (*executor.ExecutionResult, error) {
+// It accepts ExecuteRequestInput with array types and converts them to executor.Request with map types
+func (a *App) ExecuteRequest(input *ExecuteRequestInput) (*executor.ExecutionResult, error) {
+	if input == nil {
+		return nil, errors.New("request input cannot be nil")
+	}
+
+	// Validate required fields
+	if input.Method == "" {
+		return nil, errors.New("method is required")
+	}
+	if input.URL == "" {
+		return nil, errors.New("url is required")
+	}
+
+	// Convert arrays to maps (only enabled items)
+	headers := convertHeadersArrayToMap(input.Headers)
+	formData := convertFormDataArrayToMap(input.FormData)
+
+	// Create executor request
+	req := &executor.Request{
+		Method:   input.Method,
+		URL:      input.URL,
+		Headers:  headers,
+		BodyType: input.BodyType,
+		Body:     input.Body,
+		FormData: formData,
+	}
+
 	return a.executor.Execute(a.ctx, req)
 }
