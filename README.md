@@ -170,6 +170,23 @@ make wails-build-linux    # Linux
 make wails-build-darwin   # macOS
 ```
 
+**Install Linux app (build + install to ~/.local):**
+```bash
+make wails-install-linux
+# or use the helper script:
+./make-linux-app.sh
+```
+
+This will:
+1. Build the Linux binary
+2. Install it to `~/.local/bin/constrictor-rest-client`
+3. Create a desktop entry in `~/.local/share/applications/`
+4. Update the desktop database so it appears in your application menu
+
+After installation, you can:
+- Find "Constrictor REST Client" in your application menu
+- Run it from terminal: `constrictor-rest-client`
+
 **Create DMG for macOS distribution:**
 ```bash
 make wails-build-dmg
