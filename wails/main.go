@@ -8,7 +8,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 )
 
-//go:embed all:../web/dist
+//go:embed all:frontend
 var assets embed.FS
 
 // main is the entrypoint for the Wails application
