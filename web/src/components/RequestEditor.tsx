@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { RequestItem, HttpMethod, Header, BodyType, FormDataItem } from '../types';
 
 interface RequestEditorProps {
@@ -10,6 +10,8 @@ interface RequestEditorProps {
 
 const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend, isLoading }) => {
   const [activeTab, setActiveTab] = useState<'headers' | 'body'>('headers');
+  const [isMethodDropdownOpen, setIsMethodDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'];
   const bodyTypes: BodyType[] = ['none', 'json', 'form-data', 'url-encoded'];
@@ -55,17 +57,71 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
     onUpdate({ formData: newItems });
   };
 
+  // Close dropdown on Escape key or click outside
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isMethodDropdownOpen) {
+        setIsMethodDropdownOpen(false);
+      }
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsMethodDropdownOpen(false);
+      }
+    };
+
+    if (isMethodDropdownOpen) {
+      document.addEventListener('keydown', handleEscape);
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMethodDropdownOpen]);
+
   return (
     <div className="flex flex-col h-full bg-[#131314]">
       <div className="p-6 border-b border-[#3c4043] space-y-4">
         <div className="flex items-center gap-2">
-          <select
-            className="bg-[#1e1e20] border border-[#3c4043] text-[#e8eaed] text-[13px] font-bold rounded-lg h-10 px-3 outline-none focus:border-[#8ab4f8] cursor-pointer"
-            value={normalizedRequest.method}
-            onChange={(e) => onUpdate({ method: e.target.value as HttpMethod })}
-          >
-            {methods.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
+          <div className="relative" ref={dropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsMethodDropdownOpen(!isMethodDropdownOpen)}
+              className="bg-[#1e1e20] border border-[#3c4043] text-[#e8eaed] text-[13px] font-bold rounded-lg h-10 px-3 pr-8 outline-none focus:border-[#8ab4f8] cursor-pointer flex items-center justify-between min-w-[100px] hover:border-[#8ab4f8] transition-colors"
+            >
+              <span>{normalizedRequest.method}</span>
+              <svg 
+                className={`w-4 h-4 transition-transform ${isMethodDropdownOpen ? 'rotate-180' : ''}`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {isMethodDropdownOpen && (
+              <div className="absolute top-full left-0 mt-1 bg-[#1e1e20] border border-[#3c4043] rounded-lg shadow-lg z-20 min-w-[100px] overflow-hidden">
+                {methods.map(m => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => {
+                      onUpdate({ method: m });
+                      setIsMethodDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-[13px] font-bold text-[#e8eaed] hover:bg-[#3c4043] transition-colors ${
+                      normalizedRequest.method === m ? 'bg-[#3c4043]' : ''
+                    }`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <input
             type="text"
             className="flex-1 bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[15px] rounded-lg h-10 px-4 outline-none focus:border-[#8ab4f8] transition-colors placeholder-[#5f6368]"
