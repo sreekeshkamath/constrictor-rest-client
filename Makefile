@@ -55,29 +55,71 @@ wails-build-frontend: ## Build frontend for Wails (required before wails-build)
 	fi
 	@echo "$(GREEN)✅ Frontend built successfully$(NC)"
 
+# Find Wails CLI - check common locations
+WAILS_CMD := $(shell which wails 2>/dev/null || [ -f ~/go/bin/wails ] && echo ~/go/bin/wails || [ -f $(GOPATH)/bin/wails ] && echo $(GOPATH)/bin/wails || echo wails)
+
+# Find Wails CLI - check PATH first, then common Go bin locations
+WAILS_CMD := $(shell command -v wails 2>/dev/null || [ -f ~/go/bin/wails ] && echo ~/go/bin/wails || [ -n "$$GOPATH" ] && [ -f $$GOPATH/bin/wails ] && echo $$GOPATH/bin/wails || echo wails)
+
 wails-dev: wails-build-frontend ## Run Wails in development mode with hot reload
 	@echo "$(BLUE)🚀 Starting Wails development mode...$(NC)"
-	@cd wails && wails dev
+	@if ! command -v wails >/dev/null 2>&1 && [ ! -f ~/go/bin/wails ]; then \
+		echo "$(YELLOW)⚠️  Wails CLI not found. Please install with:$(NC)"; \
+		echo "$(YELLOW)   go install github.com/wailsapp/wails/v2/cmd/wails@latest$(NC)"; \
+		echo "$(YELLOW)   Then add ~/go/bin to your PATH$(NC)"; \
+		exit 1; \
+	fi
+	@cd wails && PATH="$$HOME/go/bin:$$PATH" wails dev
 
 wails-build: wails-build-frontend ## Build Wails app for current platform
 	@echo "$(BLUE)🏗️  Building Wails app for current platform...$(NC)"
-	@cd wails && wails build
+	@if ! command -v wails >/dev/null 2>&1 && [ ! -f ~/go/bin/wails ]; then \
+		echo "$(YELLOW)⚠️  Wails CLI not found. Please install with:$(NC)"; \
+		echo "$(YELLOW)   go install github.com/wailsapp/wails/v2/cmd/wails@latest$(NC)"; \
+		echo "$(YELLOW)   Then add ~/go/bin to your PATH$(NC)"; \
+		exit 1; \
+	fi
+	@cd wails && PATH="$$HOME/go/bin:$$PATH" wails build
 
 wails-build-all: wails-build-frontend ## Build Wails app for all platforms (Windows, Linux, macOS)
 	@echo "$(BLUE)🏗️  Building Wails app for all platforms...$(NC)"
-	@cd wails && wails build -platform windows/amd64,linux/amd64,darwin/amd64
+	@if ! command -v wails >/dev/null 2>&1 && [ ! -f ~/go/bin/wails ]; then \
+		echo "$(YELLOW)⚠️  Wails CLI not found. Please install with:$(NC)"; \
+		echo "$(YELLOW)   go install github.com/wailsapp/wails/v2/cmd/wails@latest$(NC)"; \
+		echo "$(YELLOW)   Then add ~/go/bin to your PATH$(NC)"; \
+		exit 1; \
+	fi
+	@cd wails && PATH="$$HOME/go/bin:$$PATH" wails build -platform windows/amd64,linux/amd64,darwin/amd64
 
 wails-build-windows: wails-build-frontend ## Build Wails app for Windows
 	@echo "$(BLUE)🏗️  Building Wails app for Windows...$(NC)"
-	@cd wails && wails build -platform windows/amd64
+	@if ! command -v wails >/dev/null 2>&1 && [ ! -f ~/go/bin/wails ]; then \
+		echo "$(YELLOW)⚠️  Wails CLI not found. Please install with:$(NC)"; \
+		echo "$(YELLOW)   go install github.com/wailsapp/wails/v2/cmd/wails@latest$(NC)"; \
+		echo "$(YELLOW)   Then add ~/go/bin to your PATH$(NC)"; \
+		exit 1; \
+	fi
+	@cd wails && PATH="$$HOME/go/bin:$$PATH" wails build -platform windows/amd64
 
 wails-build-linux: wails-build-frontend ## Build Wails app for Linux
 	@echo "$(BLUE)🏗️  Building Wails app for Linux...$(NC)"
-	@cd wails && wails build -platform linux/amd64
+	@if ! command -v wails >/dev/null 2>&1 && [ ! -f ~/go/bin/wails ]; then \
+		echo "$(YELLOW)⚠️  Wails CLI not found. Please install with:$(NC)"; \
+		echo "$(YELLOW)   go install github.com/wailsapp/wails/v2/cmd/wails@latest$(NC)"; \
+		echo "$(YELLOW)   Then add ~/go/bin to your PATH$(NC)"; \
+		exit 1; \
+	fi
+	@cd wails && PATH="$$HOME/go/bin:$$PATH" wails build -platform linux/amd64
 
 wails-build-darwin: wails-build-frontend ## Build Wails app for macOS
 	@echo "$(BLUE)🏗️  Building Wails app for macOS...$(NC)"
-	@cd wails && wails build -platform darwin/amd64
+	@if ! command -v wails >/dev/null 2>&1 && [ ! -f ~/go/bin/wails ]; then \
+		echo "$(YELLOW)⚠️  Wails CLI not found. Please install with:$(NC)"; \
+		echo "$(YELLOW)   go install github.com/wailsapp/wails/v2/cmd/wails@latest$(NC)"; \
+		echo "$(YELLOW)   Then add ~/go/bin to your PATH$(NC)"; \
+		exit 1; \
+	fi
+	@cd wails && PATH="$$HOME/go/bin:$$PATH" wails build -platform darwin/amd64
 
 wails-clean: ## Clean Wails build artifacts
 	@echo "$(YELLOW)🧹 Cleaning Wails build artifacts...$(NC)"
