@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RequestItem, HttpMethod, Header, BodyType, FormDataItem, SidebarItem, AuthConfig } from '../types';
 import AuthSelector from './AuthSelector';
 import AuthConfigModal from './AuthConfigModal';
@@ -14,6 +14,15 @@ interface RequestEditorProps {
 const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend, isLoading, items = [] }) => {
   const [activeTab, setActiveTab] = useState<'headers' | 'body'>('headers');
   const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Close modal if auth type changes to one that doesn't need config
+  useEffect(() => {
+    const auth = request.auth || { type: 'none', config: {} };
+    const needsConfig = auth.type !== 'none' && auth.type !== 'inherit' && auth.type !== 'netrc';
+    if (!needsConfig && showAuthModal) {
+      setShowAuthModal(false);
+    }
+  }, [request.auth, showAuthModal]);
 
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'];
   const bodyTypes: BodyType[] = ['none', 'json', 'form-data', 'url-encoded'];
@@ -35,11 +44,16 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
 
   const handleAuthSelect = (auth: AuthConfig) => {
     // If auth type requires configuration, show modal
+    // Otherwise, update directly without showing modal
     const needsConfig = auth.type !== 'none' && auth.type !== 'inherit' && auth.type !== 'netrc';
     if (needsConfig) {
+      // Set the auth type first, then show modal for configuration
+      onUpdate({ auth });
       setShowAuthModal(true);
     } else {
+      // For types that don't need config, update directly
       onUpdate({ auth });
+      setShowAuthModal(false); // Ensure modal is closed
     }
   };
 
@@ -149,9 +163,20 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
                 onSelect={handleAuthSelect}
                 hasParent={hasParent}
               />
-              {normalizedRequest.auth && normalizedRequest.auth.type !== 'none' && normalizedRequest.auth.type !== 'inherit' && (
+              {normalizedRequest.auth && 
+               normalizedRequest.auth.type !== 'none' && 
+               normalizedRequest.auth.type !== 'inherit' && 
+               normalizedRequest.auth.type !== 'netrc' && (
                 <button
-                  onClick={() => setShowAuthModal(true)}
+                  onClick={() => {
+                    // Only show modal for types that need configuration
+                    const needsConfig = normalizedRequest.auth.type !== 'none' && 
+                                       normalizedRequest.auth.type !== 'inherit' && 
+                                       normalizedRequest.auth.type !== 'netrc';
+                    if (needsConfig) {
+                      setShowAuthModal(true);
+                    }
+                  }}
                   className="mt-2 text-[12px] font-bold text-[#8ab4f8] hover:text-[#aecbfa] flex items-center gap-1 uppercase tracking-widest transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
