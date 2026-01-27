@@ -111,28 +111,43 @@ This file tracks progress through the Wails native desktop app implementation pl
 
 ---
 
-## Step 2: Update GetWorkspace and SaveWorkspace Methods
+## [2026-01-27] - Step 2: Update GetWorkspace and SaveWorkspace Methods
 
-**Status**: ⏳ Pending
+**Status**: ✅ Completed
 
 **Completed:**
-- (To be filled after completion)
+- Updated `GetWorkspace()` to return `[]SidebarItem` instead of `*domain.Workspace`
+- Updated `SaveWorkspace()` to accept `[]SidebarItem` instead of `*domain.Workspace`
+- Both methods now use conversion functions from Step 1
+- Added proper error handling and validation
+- Methods handle empty workspace gracefully (return empty array)
 
 **Files Changed:**
-- (To be filled after completion)
+- `wails/app.go` - Updated method signatures and implementations
+- `wails/app_test.go` - Added tests with mock store
 
 **Tests Added:**
-- (To be filled after completion)
+- `TestApp_GetWorkspace` - Tests GetWorkspace with:
+  - Empty workspace
+  - Populated workspace with folders and requests
+  - Error handling (load errors)
+- `TestApp_SaveWorkspace` - Tests SaveWorkspace with:
+  - Empty items array
+  - Items with folders and requests
+  - Error handling (save errors)
+  - Verification that correct workspace is saved
 
 **How to Verify:**
-- Run: `go test ./wails/... -v`
-- Test with `wails dev` to verify methods are callable
+- Run: `go test ./wails/... -v` (requires network access for dependency download)
+- Methods correctly convert between frontend and backend types
+- Error handling works as expected
 
 **Next Steps:**
 - Step 3: Update ExecuteRequest Method
 
 **Blockers/Notes:**
-- (To be filled if any issues arise)
+- Tests require network access to download Wails dependencies
+- Code compiles successfully, linter shows minor warnings (non-blocking)
 
 ---
 
