@@ -119,7 +119,7 @@ go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
 ### Development
 
-**Run in development mode with hot reload:**
+**Run in development mode:**
 ```bash
 make wails-dev
 # or
@@ -127,9 +127,27 @@ cd wails && wails dev
 ```
 
 This will:
-1. Build the frontend automatically
+1. Build the frontend automatically (one time)
 2. Start Wails in development mode
-3. Enable hot reload for both frontend and backend changes
+3. **Note:** Frontend changes require manual rebuild (see below)
+
+**Important:** `wails dev` does NOT automatically watch and rebuild frontend changes. When you modify files in `web/src/`, you need to rebuild:
+
+```bash
+# Rebuild frontend after making changes
+make wails-rebuild-frontend
+# or manually:
+cd web && npm run build && cd .. && rm -rf wails/frontend && cp -r web/dist wails/frontend
+```
+
+Then refresh the Wails app window to see your changes.
+
+**For automatic rebuilding (optional):**
+Run the watch script in a separate terminal:
+```bash
+./wails-dev-watch.sh
+```
+This will automatically rebuild the frontend when you save changes to `web/src/`.
 
 ### Building
 
@@ -151,6 +169,23 @@ make wails-build-windows  # Windows
 make wails-build-linux    # Linux
 make wails-build-darwin   # macOS
 ```
+
+**Install Linux app (build + install to ~/.local):**
+```bash
+make wails-install-linux
+# or use the helper script:
+./make-linux-app.sh
+```
+
+This will:
+1. Build the Linux binary
+2. Install it to `~/.local/bin/constrictor-rest-client`
+3. Create a desktop entry in `~/.local/share/applications/`
+4. Update the desktop database so it appears in your application menu
+
+After installation, you can:
+- Find "Constrictor REST Client" in your application menu
+- Run it from terminal: `constrictor-rest-client`
 
 **Create DMG for macOS distribution:**
 ```bash

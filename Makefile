@@ -65,7 +65,7 @@ WAILS_CMD := $(shell which wails 2>/dev/null || [ -f ~/go/bin/wails ] && echo ~/
 # Find Wails CLI - check PATH first, then common Go bin locations
 WAILS_CMD := $(shell command -v wails 2>/dev/null || [ -f ~/go/bin/wails ] && echo ~/go/bin/wails || [ -n "$$GOPATH" ] && [ -f $$GOPATH/bin/wails ] && echo $$GOPATH/bin/wails || echo wails)
 
-wails-dev: wails-build-frontend ## Run Wails in development mode with hot reload
+wails-dev: ## Run Wails in development mode with hot reload
 	@echo "$(BLUE)🚀 Starting Wails development mode...$(NC)"
 	@if ! command -v wails >/dev/null 2>&1 && [ ! -f ~/go/bin/wails ]; then \
 		echo "$(YELLOW)⚠️  Wails CLI not found. Please install with:$(NC)"; \
@@ -73,7 +73,18 @@ wails-dev: wails-build-frontend ## Run Wails in development mode with hot reload
 		echo "$(YELLOW)   Then add ~/go/bin to your PATH$(NC)"; \
 		exit 1; \
 	fi
+	@echo "$(BLUE)📦 Building frontend for initial load...$(NC)"
+	@cd web && npm run build
+	@rm -rf wails/frontend && cp -r web/dist wails/frontend
+	@echo "$(GREEN)✅ Frontend built. Starting Wails dev mode...$(NC)"
+	@echo "$(YELLOW)💡 Note: Frontend changes require manual rebuild. Run 'make wails-rebuild-frontend' in another terminal to rebuild.$(NC)"
 	@cd wails && PATH="$$HOME/go/bin:$$PATH" wails dev
+
+wails-rebuild-frontend: ## Rebuild frontend for Wails (run this when frontend files change)
+	@echo "$(BLUE)🏗️  Rebuilding frontend...$(NC)"
+	@cd web && npm run build
+	@rm -rf wails/frontend && cp -r web/dist wails/frontend
+	@echo "$(GREEN)✅ Frontend rebuilt. Refresh the Wails app to see changes.$(NC)"
 
 wails-build: wails-build-frontend ## Build Wails app for current platform
 	@echo "$(BLUE)🏗️  Building Wails app for current platform...$(NC)"
@@ -169,3 +180,35 @@ wails-clean: ## Clean Wails build artifacts
 	@rm -f wails/frontend
 	@rm -f *.dmg
 	@rm -rf *-dmg
+
+wails-install-linux: wails-build-linux ## Build and install Linux app to ~/.local
+	@echo "$(BLUE)📦 Installing Linux app...$(NC)"
+	@mkdir -p $$HOME/.local/bin
+	@mkdir -p $$HOME/.local/share/applications
+	@cp wails/build/bin/constrictor-rest-client $$HOME/.local/bin/constrictor-rest-client
+	@chmod +x $$HOME/.local/bin/constrictor-rest-client
+	@echo "[Desktop Entry]" > $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@echo "Version=1.0" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@echo "Type=Application" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@echo "Name=Constrictor REST Client" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@echo "Comment=REST API testing tool - Native desktop application" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@echo "Exec=$$HOME/.local/bin/constrictor-rest-client" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@echo "Icon=constrictor-rest-client" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@echo "Terminal=false" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@echo "Categories=Development;Network;" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@echo "StartupNotify=true" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@echo "Path=$$HOME/.local/bin" >> $$HOME/.local/share/applications/constrictor-rest-client.desktop
+	@mkdir -p $$HOME/.local/share/icons/hicolor/256x256/apps
+	@if [ -f "wails/appicon.svg" ]; then \
+		cp wails/appicon.svg $$HOME/.local/share/icons/hicolor/256x256/apps/constrictor-rest-client.svg; \
+		echo "$(GREEN)✅ Icon installed$(NC)"; \
+	fi
+	@if command -v update-desktop-database >/dev/null 2>&1; then \
+		update-desktop-database $$HOME/.local/share/applications 2>/dev/null || true; \
+	fi
+	@if command -v gtk-update-icon-cache >/dev/null 2>&1; then \
+		gtk-update-icon-cache -f $$HOME/.local/share/icons/hicolor 2>/dev/null || true; \
+	fi
+	@echo "$(GREEN)✅ App installed to ~/.local/bin/constrictor-rest-client$(NC)"
+	@echo "$(GREEN)✅ Desktop entry installed to ~/.local/share/applications/$(NC)"
+	@echo "$(BLUE)💡 You can now find 'Constrictor REST Client' in your application menu$(NC)"

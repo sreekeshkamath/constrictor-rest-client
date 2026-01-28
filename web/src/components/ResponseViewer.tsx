@@ -13,7 +13,7 @@ const JsonNode: React.FC<{ data: any; label?: string; depth?: number }> = ({ dat
   const isArray = Array.isArray(data);
 
   const renderValue = (val: any) => {
-    if (typeof val === 'string') return <span className="text-[#81c995] break-words">"{val}"</span>;
+    if (typeof val === 'string') return <span className="text-[#81c995] break-all">"{val}"</span>;
     if (typeof val === 'number') return <span className="text-[#8ab4f8]">{val}</span>;
     if (typeof val === 'boolean') return <span className="text-[#fdd663]">{val.toString()}</span>;
     if (val === null) return <span className="text-[#9aa0a6] italic">null</span>;
@@ -23,8 +23,8 @@ const JsonNode: React.FC<{ data: any; label?: string; depth?: number }> = ({ dat
   if (!isObject) {
     return (
       <div className="flex gap-2 py-0.5 text-[14px] min-w-0">
-        {label && <span className="text-[#9aa0a6] font-bold shrink-0">{label}:</span>}
-        <span className="min-w-0 break-words">{renderValue(data)}</span>
+        {label && <span className="text-[#9aa0a6] font-bold flex-shrink-0">{label}:</span>}
+        <span className="break-all min-w-0">{renderValue(data)}</span>
       </div>
     );
   }
@@ -33,19 +33,19 @@ const JsonNode: React.FC<{ data: any; label?: string; depth?: number }> = ({ dat
   const count = entries.length;
 
   return (
-    <div className="flex flex-col min-w-0 max-w-full">
+    <div className="flex flex-col min-w-0">
       <div
         onClick={() => setIsCollapsed(!isCollapsed)}
         className="flex items-center gap-2 py-1 cursor-pointer hover:bg-[#2a2b2f] group rounded px-1 transition-colors min-w-0"
       >
-        <span className={`text-[10px] text-[#5f6368] transition-transform shrink-0 ${isCollapsed ? '' : 'rotate-90'}`}>▶</span>
-        {label && <span className="text-[#e8eaed] font-bold text-[14px] shrink-0">{label}:</span>}
-        <span className="text-[#5f6368] text-[12px] font-bold shrink-0">
+        <span className={`text-[10px] text-[#5f6368] transition-transform flex-shrink-0 ${isCollapsed ? '' : 'rotate-90'}`}>▶</span>
+        {label && <span className="text-[#e8eaed] font-bold text-[14px] break-all min-w-0">{label}:</span>}
+        <span className="text-[#5f6368] text-[12px] font-bold flex-shrink-0">
           {isArray ? `Array(${count})` : `Object(${count})`}
         </span>
       </div>
       {!isCollapsed && (
-        <div className="ml-4 pl-3 border-l border-[#3c4043] min-w-0 max-w-full">
+        <div className="ml-4 pl-3 border-l border-[#3c4043] min-w-0">
           {entries.map((entry: any, i: number) => {
             const nodeLabel = isArray ? i.toString() : entry[0];
             const nodeData = isArray ? entry : entry[1];
@@ -96,8 +96,8 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({ response, isLoading, er
   }
 
   return (
-    <div className="h-full flex flex-col bg-[#131314]">
-      <div className="p-6 border-b border-[#3c4043] flex items-center justify-between">
+    <div className="h-full flex flex-col bg-[#131314] overflow-hidden">
+      <div className="flex-shrink-0 p-6 border-b border-[#3c4043] flex items-center justify-between">
         <div className="flex items-center gap-10">
           <div className="flex flex-col">
             <span className="text-[10px] text-[#5f6368] font-bold uppercase tracking-widest mb-1">Status</span>
@@ -114,28 +114,28 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({ response, isLoading, er
         </div>
       </div>
 
-      <div className="flex border-b border-[#3c4043] px-6 gap-8">
+      <div className="flex-shrink-0 flex border-b border-[#3c4043] px-6 gap-8">
         <button onClick={() => setActiveTab('body')} className={`py-4 text-[12px] font-bold uppercase tracking-widest border-b-2 transition-all ${activeTab === 'body' ? 'border-[#8ab4f8] text-[#8ab4f8]' : 'border-transparent text-[#9aa0a6] hover:text-[#e8eaed]'}`}>Response Body</button>
         <button onClick={() => setActiveTab('headers')} className={`py-4 text-[12px] font-bold uppercase tracking-widest border-b-2 transition-all ${activeTab === 'headers' ? 'border-[#8ab4f8] text-[#8ab4f8]' : 'border-transparent text-[#9aa0a6] hover:text-[#e8eaed]'}`}>Headers</button>
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-6">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-6">
         {activeTab === 'body' ? (
-          <div className="bg-[#1e1e20] p-6 rounded-xl border border-[#3c4043] font-mono max-w-full overflow-hidden">
+          <div className="bg-[#1e1e20] p-6 rounded-xl border border-[#3c4043] font-mono overflow-x-hidden">
             {typeof parsedBody === 'object' ? (
-              <div className="min-w-0 max-w-full overflow-hidden">
+              <div className="overflow-x-hidden min-w-0">
                 <JsonNode data={parsedBody} />
               </div>
             ) : (
-              <pre className="whitespace-pre-wrap break-words text-[14px] text-[#e8eaed] leading-relaxed max-w-full overflow-wrap-anywhere">{parsedBody}</pre>
+              <pre className="whitespace-pre-wrap text-[14px] text-[#e8eaed] leading-relaxed break-all max-w-full">{parsedBody}</pre>
             )}
           </div>
         ) : (
           <div className="space-y-1 font-mono text-[13px]">
             {Object.entries(response.headers).map(([key, value]) => (
               <div key={key} className="flex border-b border-[#3c4043]/50 py-3 group hover:bg-[#1e1e20] px-2 transition-colors min-w-0">
-                <span className="w-1/3 font-bold text-[#9aa0a6] select-all uppercase tracking-tighter text-[11px] self-center shrink-0">{key}</span>
-                <span className="flex-1 text-[#e8eaed] select-all break-words min-w-0">{value}</span>
+                <span className="w-1/3 font-bold text-[#9aa0a6] select-all uppercase tracking-tighter text-[11px] self-center flex-shrink-0">{key}</span>
+                <span className="flex-1 text-[#e8eaed] select-all break-all min-w-0">{value}</span>
               </div>
             ))}
           </div>

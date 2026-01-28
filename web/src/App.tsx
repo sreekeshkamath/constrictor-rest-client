@@ -164,9 +164,27 @@ const App: React.FC = () => {
     setResponse(null);
 
     try {
+      // Handle API key in query parameters if needed
+      let url = activeItem.url;
+      if (activeItem.auth?.type === 'apikey' && 
+          activeItem.auth.apiKeyLocation === 'query' && 
+          activeItem.auth.apiKeyKey && 
+          activeItem.auth.apiKeyValue &&
+          url) {
+        try {
+          const urlObj = new URL(url);
+          urlObj.searchParams.set(activeItem.auth.apiKeyKey, activeItem.auth.apiKeyValue);
+          url = urlObj.toString();
+        } catch (e) {
+          // If URL is invalid, append query param manually
+          const separator = url.includes('?') ? '&' : '?';
+          url = `${url}${separator}${encodeURIComponent(activeItem.auth.apiKeyKey)}=${encodeURIComponent(activeItem.auth.apiKeyValue)}`;
+        }
+      }
+
       const response = await ExecuteRequest({
         method: activeItem.method,
-        url: activeItem.url,
+        url: url,
         requestId: activeItem.id,
         headers: activeItem.headers || [],
         bodyType: activeItem.bodyType,
