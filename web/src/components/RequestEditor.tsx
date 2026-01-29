@@ -459,7 +459,6 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
               </svg>
               Add Row
             </button>
-            </div>
           </div>
         ) : (
           <div className="h-full flex flex-col space-y-4">
