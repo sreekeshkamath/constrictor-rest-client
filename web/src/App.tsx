@@ -4,9 +4,8 @@ import RequestEditor from './components/RequestEditor';
 import ResponseViewer from './components/ResponseViewer';
 import SettingsModal from './components/SettingsModal';
 import { SidebarItem, RequestItem, ResponseData, AppSettings } from './types';
+import { GetWorkspace, SaveWorkspace, ExecuteRequest } from './wails';
 import { v4 as uuidv4 } from 'uuid';
-
-const API_BASE = '/api';
 
 const isRequestItem = (item: SidebarItem): item is RequestItem => {
   return item.type === 'request';
@@ -44,14 +43,38 @@ const App: React.FC = () => {
   // Load workspace from backend
   useEffect(() => {
     const loadWorkspace = async () => {
+      // Wait for Wails runtime to be ready (with retries)
+      let retries = 10;
+      while (retries > 0 && typeof window !== 'undefined' && (!(window as any).go?.main?.App)) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        retries--;
+      }
+      
+      if (retries === 0 && typeof window !== 'undefined' && (!(window as any).go?.main?.App)) {
+        console.warn('Wails runtime not available, using default workspace');
+        const defaultReq: RequestItem = {
+          id: 'welcome-req',
+          name: 'Get Users Demo',
+          method: 'GET',
+          url: 'https://jsonplaceholder.typicode.com/users',
+          headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
+          bodyType: 'json',
+          body: '',
+          formData: [],
+          type: 'request',
+          createdAt: Date.now()
+        };
+        setItems([defaultReq]);
+        setActiveId(defaultReq.id);
+        return;
+      }
+      
       try {
-        const res = await fetch(`${API_BASE}/workspace`);
-        if (!res.ok) throw new Error('Failed to load workspace');
-        const data = await res.json();
+        const items = await GetWorkspace();
 
-        if (data.items && data.items.length > 0) {
+        if (items && items.length > 0) {
           // Normalize items to ensure all required fields are present
-          const normalizedItems = data.items.map((item: any) => {
+          const normalizedItems = items.map((item: any) => {
             if (item.type === 'request') {
               return {
                 ...item,
@@ -115,22 +138,7 @@ const App: React.FC = () => {
 
     const saveWorkspace = async () => {
       try {
-        // Save to local backend
-        const res = await fetch(`${API_BASE}/workspace`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ version: 1, items })
-        });
-
-        if (!res.ok) {
-          const errorText = await res.text();
-          let errorMessage = 'Failed to save workspace';
-          try {
-            const errorJson = JSON.parse(errorText);
-            errorMessage = errorJson.message || errorMessage;
-          } catch {}
-          throw new Error(`${errorMessage}: ${errorText}`);
-        }
+        await SaveWorkspace(items);
       } catch (err) {
         console.error('Failed to save workspace:', err);
       }
@@ -150,45 +158,43 @@ const App: React.FC = () => {
   };
 
   const handleSendRequest = async () => {
-    if (!activeItem) return;
+    if (!activeItem || !isRequestItem(activeItem)) return;
     setIsLoading(true);
     setError(null);
     setResponse(null);
 
     try {
-      const res = await fetch(`${API_BASE}/execute`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          method: activeItem.method,
-          url: activeItem.url,
-          headers: activeItem.headers,
-          bodyType: activeItem.bodyType,
-          body: activeItem.body,
-          formData: activeItem.formData
-        })
+      // Handle API key in query parameters if needed
+      let url = activeItem.url;
+      if (activeItem.auth?.type === 'apikey' && 
+          activeItem.auth.apiKeyLocation === 'query' && 
+          activeItem.auth.apiKeyKey && 
+          activeItem.auth.apiKeyValue &&
+          url) {
+        try {
+          const urlObj = new URL(url);
+          urlObj.searchParams.set(activeItem.auth.apiKeyKey, activeItem.auth.apiKeyValue);
+          url = urlObj.toString();
+        } catch (e) {
+          // If URL is invalid, append query param manually
+          const separator = url.includes('?') ? '&' : '?';
+          url = `${url}${separator}${encodeURIComponent(activeItem.auth.apiKeyKey)}=${encodeURIComponent(activeItem.auth.apiKeyValue)}`;
+        }
+      }
+
+      const response = await ExecuteRequest({
+        method: activeItem.method,
+        url: url,
+        requestId: activeItem.id,
+        headers: activeItem.headers || [],
+        bodyType: activeItem.bodyType,
+        body: activeItem.body || '',
+        formData: activeItem.formData || []
       });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Request failed');
-      }
-
-      const data = await res.json();
-
-      if (data.error) {
-        setError(data.error.message || 'Request failed');
-      } else {
-        setResponse({
-          status: data.status,
-          statusText: data.statusText,
-          headers: data.headers,
-          body: data.body,
-          time: data.timeMs,
-          size: data.sizeBytes
-        });
-      }
+      setResponse(response);
     } catch (err: any) {
+      console.error('ExecuteRequest error:', err);
       setError(err.message || "Failed to execute request");
     } finally {
       setIsLoading(false);
@@ -294,6 +300,10 @@ const App: React.FC = () => {
     setItems(prev => prev.map(item => item.id === id ? { ...item, name: newName } : item));
   };
 
+  const handleUpdateItem = (id: string, updates: Partial<SidebarItem>) => {
+    setItems(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
+  };
+
   const handleMoveItem = (itemId: string, targetId: string | null) => {
     if (itemId === targetId) return;
     const isDescendant = (descendantId: string, ancestorId: string, items: SidebarItem[]): boolean => {
@@ -324,6 +334,7 @@ const App: React.FC = () => {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onExport={handleExportWorkspace}
         onImport={handleImportWorkspace}
+        onUpdateItem={handleUpdateItem}
       />
 
       <main className="flex flex-1 overflow-hidden">
@@ -335,6 +346,7 @@ const App: React.FC = () => {
                 onUpdate={updateActiveRequest}
                 onSend={handleSendRequest}
                 isLoading={isLoading}
+                items={items}
               />
             </div>
             <div className="flex-1 min-w-0 bg-[#131314]">

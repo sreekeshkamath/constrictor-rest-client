@@ -21,3 +21,19 @@ body {
 .mono {
   font-family: 'Courier New', Courier, monospace;
 }
+
+/* Fix select dropdown text visibility on Linux */
+select {
+  color: #e8eaed !important;
+  background-color: #1e1e20 !important;
+}
+
+select option {
+  color: #e8eaed !important;
+  background-color: #1e1e20 !important;
+}
+
+/* Ensure select text is visible when focused */
+select:focus {
+  color: #e8eaed !important;
+}
