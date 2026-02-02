@@ -108,6 +108,11 @@ func (h *Handlers) HandleExecute(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		if requestItem == nil {
+			respondError(w, http.StatusBadRequest, "request not found", "")
+			return
+		}
+
 		// Create executor with workspace and request item for auth resolution
 		httpExecutor, ok := h.executor.(*executor.HTTPExecutor)
 		if !ok {
