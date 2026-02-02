@@ -25,7 +25,10 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
     setConfig(prev => ({ ...prev, [key]: value }));
   };
 
+  const getAuthConfig = () => auth.config || {};
+
   const renderConfigForm = () => {
+    const cfg = getAuthConfig();
     switch (auth.type) {
       case 'bearer':
         return (
@@ -36,7 +39,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
               </label>
               <input
                 type="text"
-                value={config.token || ''}
+                value={cfg.token || ''}
                 onChange={(e) => updateConfig('token', e.target.value)}
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
                 placeholder="Enter bearer token"
@@ -54,7 +57,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
               </label>
               <input
                 type="text"
-                value={config.username || ''}
+                value={cfg.username || ''}
                 onChange={(e) => updateConfig('username', e.target.value)}
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
                 placeholder="Enter username"
@@ -66,7 +69,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
               </label>
               <input
                 type="password"
-                value={config.password || ''}
+                value={cfg.password || ''}
                 onChange={(e) => updateConfig('password', e.target.value)}
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
                 placeholder="Enter password"
@@ -84,7 +87,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
               </label>
               <input
                 type="text"
-                value={config.key || ''}
+                value={cfg.key || ''}
                 onChange={(e) => updateConfig('key', e.target.value)}
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
                 placeholder="e.g., X-API-Key"
@@ -96,7 +99,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
               </label>
               <input
                 type="text"
-                value={config.value || ''}
+                value={cfg.value || ''}
                 onChange={(e) => updateConfig('value', e.target.value)}
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
                 placeholder="Enter API key value"
@@ -107,7 +110,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
                 Location
               </label>
               <select
-                value={config.location || 'header'}
+                value={cfg.location || 'header'}
                 onChange={(e) => updateConfig('location', e.target.value)}
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
               >
@@ -127,7 +130,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
               </label>
               <input
                 type="text"
-                value={config.accessToken || ''}
+                value={cfg.accessToken || ''}
                 onChange={(e) => updateConfig('accessToken', e.target.value)}
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
                 placeholder="Enter OAuth 2.0 access token"
@@ -139,7 +142,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
               </label>
               <input
                 type="text"
-                value={config.tokenType || 'Bearer'}
+                value={cfg.tokenType || 'Bearer'}
                 onChange={(e) => updateConfig('tokenType', e.target.value)}
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
                 placeholder="Bearer"
@@ -157,7 +160,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
               </label>
               <input
                 type="text"
-                value={config.consumerKey || ''}
+                value={cfg.consumerKey || ''}
                 onChange={(e) => updateConfig('consumerKey', e.target.value)}
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
                 placeholder="Enter consumer key"
@@ -169,7 +172,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
               </label>
               <input
                 type="password"
-                value={config.consumerSecret || ''}
+                value={cfg.consumerSecret || ''}
                 onChange={(e) => updateConfig('consumerSecret', e.target.value)}
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
                 placeholder="Enter consumer secret"
@@ -181,7 +184,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
               </label>
               <input
                 type="text"
-                value={config.token || ''}
+                value={cfg.token || ''}
                 onChange={(e) => updateConfig('token', e.target.value)}
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
                 placeholder="Enter token (optional)"
@@ -193,7 +196,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
               </label>
               <input
                 type="password"
-                value={config.tokenSecret || ''}
+                value={cfg.tokenSecret || ''}
                 onChange={(e) => updateConfig('tokenSecret', e.target.value)}
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
                 placeholder="Enter token secret (optional)"
@@ -212,7 +215,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
               </label>
               <input
                 type="text"
-                value={config.username || ''}
+                value={cfg.username || ''}
                 onChange={(e) => updateConfig('username', e.target.value)}
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
                 placeholder="Enter username"
@@ -224,7 +227,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
               </label>
               <input
                 type="password"
-                value={config.password || ''}
+                value={cfg.password || ''}
                 onChange={(e) => updateConfig('password', e.target.value)}
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
                 placeholder="Enter password"
@@ -242,7 +245,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
               </label>
               <input
                 type="text"
-                value={config.accessKeyId || ''}
+                value={cfg.accessKeyId || ''}
                 onChange={(e) => updateConfig('accessKeyId', e.target.value)}
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
                 placeholder="Enter AWS access key ID"
@@ -254,7 +257,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
               </label>
               <input
                 type="password"
-                value={config.secretAccessKey || ''}
+                value={cfg.secretAccessKey || ''}
                 onChange={(e) => updateConfig('secretAccessKey', e.target.value)}
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
                 placeholder="Enter AWS secret access key"
@@ -266,7 +269,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
               </label>
               <input
                 type="text"
-                value={config.region || 'us-east-1'}
+                value={cfg.region || 'us-east-1'}
                 onChange={(e) => updateConfig('region', e.target.value)}
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
                 placeholder="us-east-1"
@@ -278,7 +281,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
               </label>
               <input
                 type="text"
-                value={config.service || 'execute-api'}
+                value={cfg.service || 'execute-api'}
                 onChange={(e) => updateConfig('service', e.target.value)}
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
                 placeholder="execute-api"
@@ -296,7 +299,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
               </label>
               <input
                 type="text"
-                value={config.authId || ''}
+                value={cfg.authId || ''}
                 onChange={(e) => updateConfig('authId', e.target.value)}
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
                 placeholder="Enter Hawk auth ID"
@@ -308,7 +311,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
               </label>
               <input
                 type="password"
-                value={config.authKey || ''}
+                value={cfg.authKey || ''}
                 onChange={(e) => updateConfig('authKey', e.target.value)}
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
                 placeholder="Enter Hawk auth key"
@@ -326,7 +329,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
               </label>
               <input
                 type="text"
-                value={config.token || ''}
+                value={cfg.token || ''}
                 onChange={(e) => updateConfig('token', e.target.value)}
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
                 placeholder="Enter ASAP token"

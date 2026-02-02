@@ -6,7 +6,6 @@ interface RequestEditorProps {
   onUpdate: (updates: Partial<RequestItem>) => void;
   onSend: () => void;
   isLoading: boolean;
-  items?: SidebarItem[]; // For checking parent existence
 }
 
 const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend, isLoading }) => {
@@ -58,7 +57,8 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
 
   // Sync auth config to headers when auth type changes
   useEffect(() => {
-    const auth = normalizedRequest.auth || { type: 'none' };
+    const auth = normalizedRequest.auth || { type: 'none', config: {} };
+    const cfg = auth.config || {};
     
     // Skip if auth is none or incomplete
     if (auth.type === 'none') {
@@ -75,16 +75,16 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
     let authHeader: Header | null = null;
     let headerKeyToRemove = '';
 
-    if (auth.type === 'bearer' && auth.bearerToken) {
-      authHeader = { key: 'Authorization', value: `Bearer ${auth.bearerToken}`, enabled: true };
+    if (auth.type === 'bearer' && cfg.token) {
+      authHeader = { key: 'Authorization', value: `Bearer ${cfg.token}`, enabled: true };
       headerKeyToRemove = 'authorization';
-    } else if (auth.type === 'basic' && auth.basicUsername && auth.basicPassword) {
-      const credentials = btoa(`${auth.basicUsername}:${auth.basicPassword}`);
+    } else if (auth.type === 'basic' && cfg.username && cfg.password) {
+      const credentials = btoa(`${cfg.username}:${cfg.password}`);
       authHeader = { key: 'Authorization', value: `Basic ${credentials}`, enabled: true };
       headerKeyToRemove = 'authorization';
-    } else if (auth.type === 'apikey' && auth.apiKeyKey && auth.apiKeyValue && auth.apiKeyLocation === 'header') {
-      authHeader = { key: auth.apiKeyKey, value: auth.apiKeyValue, enabled: true };
-      headerKeyToRemove = auth.apiKeyKey;
+    } else if (auth.type === 'apikey' && cfg.key && cfg.value && cfg.location === 'header') {
+      authHeader = { key: cfg.key, value: cfg.value, enabled: true };
+      headerKeyToRemove = cfg.key;
     }
 
     // Only update headers if we have a header to add (skip query params)
@@ -102,10 +102,10 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
       if (!existingAuthHeader || existingAuthHeader.value !== authHeader.value) {
         onUpdate({ headers: [...otherHeaders, authHeader] });
       }
-    } else if (auth.type === 'apikey' && auth.apiKeyLocation === 'query') {
+    } else if (auth.type === 'apikey' && cfg.location === 'query') {
       // For query params, just remove any existing header with this key
       const otherHeaders = normalizedRequest.headers.filter(
-        h => h.key !== auth.apiKeyKey
+        h => h.key !== cfg.key
       );
       if (otherHeaders.length !== normalizedRequest.headers.length) {
         onUpdate({ headers: otherHeaders });
@@ -113,12 +113,12 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
     }
   }, [
     normalizedRequest.auth?.type,
-    normalizedRequest.auth?.bearerToken,
-    normalizedRequest.auth?.basicUsername,
-    normalizedRequest.auth?.basicPassword,
-    normalizedRequest.auth?.apiKeyKey,
-    normalizedRequest.auth?.apiKeyValue,
-    normalizedRequest.auth?.apiKeyLocation
+    normalizedRequest.auth?.config?.token,
+    normalizedRequest.auth?.config?.username,
+    normalizedRequest.auth?.config?.password,
+    normalizedRequest.auth?.config?.key,
+    normalizedRequest.auth?.config?.value,
+    normalizedRequest.auth?.config?.location
   ]);
 
   const addHeader = () => {
@@ -314,8 +314,8 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
                     type="password"
                     className="w-full bg-[#1e1e20] border border-[#3c4043] rounded-lg px-4 py-3 text-[14px] outline-none focus:border-[#8ab4f8] text-[#e8eaed]"
                     placeholder="Enter bearer token"
-                    value={normalizedRequest.auth?.bearerToken || ''}
-                    onChange={(e) => onUpdate({ auth: { ...normalizedRequest.auth, bearerToken: e.target.value } })}
+                    value={normalizedRequest.auth?.config?.token || ''}
+                    onChange={(e) => onUpdate({ auth: { ...normalizedRequest.auth, config: { ...normalizedRequest.auth?.config, token: e.target.value } } })}
                   />
                 </div>
                 <p className="text-[11px] text-[#5f6368] italic">
@@ -334,8 +334,8 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
                     type="text"
                     className="w-full bg-[#1e1e20] border border-[#3c4043] rounded-lg px-4 py-3 text-[14px] outline-none focus:border-[#8ab4f8] text-[#e8eaed]"
                     placeholder="Enter username"
-                    value={normalizedRequest.auth?.basicUsername || ''}
-                    onChange={(e) => onUpdate({ auth: { ...normalizedRequest.auth, basicUsername: e.target.value } })}
+                    value={normalizedRequest.auth?.config?.username || ''}
+                    onChange={(e) => onUpdate({ auth: { ...normalizedRequest.auth, config: { ...normalizedRequest.auth?.config, username: e.target.value } } })}
                   />
                 </div>
                 <div>
@@ -346,8 +346,8 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
                     type="password"
                     className="w-full bg-[#1e1e20] border border-[#3c4043] rounded-lg px-4 py-3 text-[14px] outline-none focus:border-[#8ab4f8] text-[#e8eaed]"
                     placeholder="Enter password"
-                    value={normalizedRequest.auth?.basicPassword || ''}
-                    onChange={(e) => onUpdate({ auth: { ...normalizedRequest.auth, basicPassword: e.target.value } })}
+                    value={normalizedRequest.auth?.config?.password || ''}
+                    onChange={(e) => onUpdate({ auth: { ...normalizedRequest.auth, config: { ...normalizedRequest.auth?.config, password: e.target.value } } })}
                   />
                 </div>
                 <p className="text-[11px] text-[#5f6368] italic">
@@ -366,8 +366,8 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
                     type="text"
                     className="w-full bg-[#1e1e20] border border-[#3c4043] rounded-lg px-4 py-3 text-[14px] outline-none focus:border-[#8ab4f8] text-[#e8eaed]"
                     placeholder="e.g., X-API-Key, Api-Key"
-                    value={normalizedRequest.auth?.apiKeyKey || ''}
-                    onChange={(e) => onUpdate({ auth: { ...normalizedRequest.auth, apiKeyKey: e.target.value } })}
+                    value={normalizedRequest.auth?.config?.key || ''}
+                    onChange={(e) => onUpdate({ auth: { ...normalizedRequest.auth, config: { ...normalizedRequest.auth?.config, key: e.target.value } } })}
                   />
                 </div>
                 <div>
@@ -378,8 +378,8 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
                     type="password"
                     className="w-full bg-[#1e1e20] border border-[#3c4043] rounded-lg px-4 py-3 text-[14px] outline-none focus:border-[#8ab4f8] text-[#e8eaed]"
                     placeholder="Enter API key"
-                    value={normalizedRequest.auth?.apiKeyValue || ''}
-                    onChange={(e) => onUpdate({ auth: { ...normalizedRequest.auth, apiKeyValue: e.target.value } })}
+                    value={normalizedRequest.auth?.config?.value || ''}
+                    onChange={(e) => onUpdate({ auth: { ...normalizedRequest.auth, config: { ...normalizedRequest.auth?.config, value: e.target.value } } })}
                   />
                 </div>
                 <div>
@@ -390,9 +390,9 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
                     {(['header', 'query'] as const).map(location => (
                       <button
                         key={location}
-                        onClick={() => onUpdate({ auth: { ...normalizedRequest.auth, apiKeyLocation: location } })}
+                        onClick={() => onUpdate({ auth: { ...normalizedRequest.auth, config: { ...normalizedRequest.auth?.config, location } } })}
                         className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded-md transition-all ${
-                          (normalizedRequest.auth?.apiKeyLocation || 'header') === location
+                          (normalizedRequest.auth?.config?.location || 'header') === location
                             ? 'bg-[#8ab4f8] text-[#131314]'
                             : 'text-[#9aa0a6] hover:text-[#e8eaed]'
                         }`}
@@ -403,7 +403,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
                   </div>
                 </div>
                 <p className="text-[11px] text-[#5f6368] italic">
-                  {normalizedRequest.auth?.apiKeyLocation === 'query' 
+                  {normalizedRequest.auth?.config?.location === 'query' 
                     ? 'This will add the API key as a query parameter in the URL'
                     : 'This will automatically add the API key as a header'}
                 </p>
