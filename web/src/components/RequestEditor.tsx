@@ -12,6 +12,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
   const [activeTab, setActiveTab] = useState<'auth' | 'headers' | 'body'>('auth');
   const [isMethodDropdownOpen, setIsMethodDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const prevAuthHeaderKeysRef = useRef<Set<string>>(new Set());
 
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'];
   const bodyTypes: BodyType[] = ['none', 'json', 'form-data', 'url-encoded'];
@@ -59,57 +60,71 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
   useEffect(() => {
     const auth = normalizedRequest.auth || { type: 'none', config: {} };
     const cfg = auth.config || {};
-    
+    const authType = auth.type;
+    const cfgKey = cfg.key;
+
     // Skip if auth is none or incomplete
-    if (auth.type === 'none') {
-      // Remove any existing auth headers
+    if (authType === 'none') {
+      // Remove any existing auth headers including all previously tracked ones
       const otherHeaders = normalizedRequest.headers.filter(
-        h => h.key.toLowerCase() !== 'authorization'
+        h => !prevAuthHeaderKeysRef.current.has(h.key.toLowerCase()) &&
+             h.key.toLowerCase() !== 'authorization'
       );
       if (otherHeaders.length !== normalizedRequest.headers.length) {
         onUpdate({ headers: otherHeaders });
       }
+      prevAuthHeaderKeysRef.current.clear();
       return;
     }
 
     let authHeader: Header | null = null;
     let headerKeyToRemove = '';
+    const currentAuthHeaderKeys = new Set<string>();
 
-    if (auth.type === 'bearer' && cfg.token) {
+    if (authType === 'bearer' && cfg.token) {
       authHeader = { key: 'Authorization', value: `Bearer ${cfg.token}`, enabled: true };
       headerKeyToRemove = 'authorization';
-    } else if (auth.type === 'basic' && cfg.username && cfg.password) {
+      currentAuthHeaderKeys.add('authorization');
+    } else if (authType === 'basic' && cfg.username && cfg.password) {
       const credentials = btoa(`${cfg.username}:${cfg.password}`);
       authHeader = { key: 'Authorization', value: `Basic ${credentials}`, enabled: true };
       headerKeyToRemove = 'authorization';
-    } else if (auth.type === 'apikey' && cfg.key && cfg.value && cfg.location === 'header') {
+      currentAuthHeaderKeys.add('authorization');
+    } else if (authType === 'apikey' && cfg.key && cfg.value && cfg.location === 'header') {
       authHeader = { key: cfg.key, value: cfg.value, enabled: true };
       headerKeyToRemove = cfg.key;
+      currentAuthHeaderKeys.add(cfg.key.toLowerCase());
     }
 
     // Only update headers if we have a header to add (skip query params)
     if (authHeader) {
-      // Remove old auth headers
+      // Remove old auth headers including all previously tracked ones
       const otherHeaders = normalizedRequest.headers.filter(
-        h => h.key.toLowerCase() !== headerKeyToRemove.toLowerCase()
+        h => !prevAuthHeaderKeysRef.current.has(h.key.toLowerCase()) &&
+             h.key.toLowerCase() !== headerKeyToRemove.toLowerCase() &&
+             h.key.toLowerCase() !== 'authorization'
       );
-      
+
       // Check if we need to update
       const existingAuthHeader = normalizedRequest.headers.find(
         h => h.key.toLowerCase() === headerKeyToRemove.toLowerCase()
       );
-      
+
       if (!existingAuthHeader || existingAuthHeader.value !== authHeader.value) {
         onUpdate({ headers: [...otherHeaders, authHeader] });
+        prevAuthHeaderKeysRef.current = currentAuthHeaderKeys;
       }
-    } else if (auth.type === 'apikey' && cfg.location === 'query') {
-      // For query params, just remove any existing header with this key
+    } else if (authType === 'apikey' && cfg.location === 'query') {
+      // For query params, just remove any existing header with this key and all tracked auth headers
       const otherHeaders = normalizedRequest.headers.filter(
-        h => h.key !== cfg.key
+        h => !prevAuthHeaderKeysRef.current.has(h.key.toLowerCase()) &&
+             h.key.toLowerCase() !== (cfg.key || '').toLowerCase() &&
+             h.key.toLowerCase() !== 'authorization'
       );
       if (otherHeaders.length !== normalizedRequest.headers.length) {
         onUpdate({ headers: otherHeaders });
       }
+      prevAuthHeaderKeysRef.current.clear();
     }
   }, [
     normalizedRequest.auth?.type,
