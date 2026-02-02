@@ -25,7 +25,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
     setConfig(prev => ({ ...prev, [key]: value }));
   };
 
-  const getAuthConfig = () => auth.config || {};
+  const getAuthConfig = () => config;
 
   const renderConfigForm = () => {
     const cfg = getAuthConfig();
@@ -115,7 +115,7 @@ const AuthConfigModal: React.FC<AuthConfigModalProps> = ({ auth, onSave, onCance
                 className="w-full bg-[#131314] border border-[#3c4043] text-[#e8eaed] text-[14px] rounded-lg px-3 py-2 outline-none focus:border-[#8ab4f8]"
               >
                 <option value="header">Header</option>
-                <option value="query">Query Parameter</option>
+                <option value="query" disabled>Query Parameter (Not supported)</option>
               </select>
             </div>
           </div>
