@@ -14,8 +14,8 @@ import (
 
 // HTTPExecutor implements Executor using net/http
 type HTTPExecutor struct {
-	client      *http.Client
-	config      Config
+	client       *http.Client
+	config       Config
 	authResolver *AuthResolver
 }
 
@@ -219,9 +219,6 @@ func (e *HTTPExecutor) ExecuteWithAuth(ctx context.Context, req *Request, reques
 			if err != nil {
 				// Log header generation error but continue without auth headers
 				fmt.Printf("Warning: Failed to generate auth headers for request %s (type: %s): %v\n", req.RequestID, resolvedAuth.Type, err)
-				if resolvedAuth.Type == "bearer" && resolvedAuth.Config != nil {
-					fmt.Printf("Debug: Bearer auth config: %+v\n", resolvedAuth.Config)
-				}
 			} else {
 				authHeaders = generatedHeaders
 				if len(authHeaders) > 0 {
@@ -240,14 +237,14 @@ func (e *HTTPExecutor) ExecuteWithAuth(ctx context.Context, req *Request, reques
 	// Merge auth headers with manual headers (auth takes precedence)
 	// Use canonical header names (Go's http package canonicalizes headers)
 	mergedHeaders := make(map[string]string)
-	
+
 	// Add auth headers first
 	for key, value := range authHeaders {
 		// Canonicalize header key (first letter and letters after hyphens are uppercase)
 		canonicalKey := http.CanonicalHeaderKey(key)
 		mergedHeaders[canonicalKey] = value
 	}
-	
+
 	// Add manual headers, skipping any that conflict with auth headers (case-insensitive check)
 	for key, value := range req.Headers {
 		canonicalKey := http.CanonicalHeaderKey(key)
