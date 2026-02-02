@@ -3,8 +3,6 @@ package executor
 import (
 	"encoding/base64"
 	"fmt"
-	"net/url"
-	"strings"
 
 	"github.com/constrictor/constrictor-rest-client/internal/domain"
 )
@@ -31,8 +29,14 @@ func (r *AuthResolver) ResolveAuth(item *domain.WorkspaceItem, workspace *domain
 	}
 
 	// Walk up the folder hierarchy to find auth config
+	visited := make(map[string]bool)
 	currentParentID := item.ParentID
 	for currentParentID != nil {
+		if visited[*currentParentID] {
+			return &domain.AuthConfig{Type: "none", Config: make(map[string]interface{})}, nil
+		}
+		visited[*currentParentID] = true
+
 		// Find parent item
 		var parentItem *domain.WorkspaceItem
 		for i := range workspace.Items {
@@ -183,101 +187,54 @@ func (r *AuthResolver) generateOAuth2(auth *domain.AuthConfig) (map[string]strin
 	}, nil
 }
 
-// generateOAuth1 generates OAuth 1.0 signature (simplified implementation)
+// generateOAuth1 generates OAuth 1.0 signature (not implemented)
 func (r *AuthResolver) generateOAuth1(auth *domain.AuthConfig, method, reqURL string) (map[string]string, error) {
-	consumerKey, _ := auth.Config["consumerKey"].(string)
-	consumerSecret, _ := auth.Config["consumerSecret"].(string)
-	token, _ := auth.Config["token"].(string)
-	_ = auth.Config["tokenSecret"] // Reserved for future use
-
-	if consumerKey == "" || consumerSecret == "" {
-		return nil, fmt.Errorf("consumerKey and consumerSecret are required for OAuth 1.0")
+	consumerKey, ok1 := auth.Config["consumerKey"].(string)
+	consumerSecret, ok2 := auth.Config["consumerSecret"].(string)
+	if !ok1 || !ok2 || consumerKey == "" || consumerSecret == "" {
+		return nil, fmt.Errorf("OAuth1 authentication not implemented: consumerKey and consumerSecret are required but the scheme requires proper HMAC-SHA1 signing")
 	}
-
-	// Simplified OAuth 1.0 - in production, this should use proper signature generation
-	// For now, we'll use a basic implementation
-	params := url.Values{}
-	params.Set("oauth_consumer_key", consumerKey)
-	if token != "" {
-		params.Set("oauth_token", token)
-	}
-	params.Set("oauth_signature_method", "HMAC-SHA1")
-	params.Set("oauth_version", "1.0")
-
-	// Note: Full OAuth 1.0 signature generation requires proper HMAC-SHA1 signing
-	// This is a placeholder - full implementation would need crypto/hmac
-	oauthHeader := "OAuth " + strings.ReplaceAll(params.Encode(), "&", ", ")
-	return map[string]string{
-		"Authorization": oauthHeader,
-	}, nil
+	return nil, fmt.Errorf("OAuth1 authentication not implemented: requires proper HMAC-SHA1 signing of the request signature base string")
 }
 
-// generateDigestAuth generates Digest authentication header (simplified)
+// generateDigestAuth generates Digest authentication header (not implemented)
 func (r *AuthResolver) generateDigestAuth(auth *domain.AuthConfig) (map[string]string, error) {
 	username, ok1 := auth.Config["username"].(string)
-	_, ok2 := auth.Config["password"].(string)
-	if !ok1 || !ok2 || username == "" {
-		return nil, fmt.Errorf("username and password are required for digest auth")
+	password, ok2 := auth.Config["password"].(string)
+	if !ok1 || !ok2 || username == "" || password == "" {
+		return nil, fmt.Errorf("Digest authentication not implemented: username and password are required but the scheme requires challenge-response handling with MD5/SHA hashing")
 	}
-
-	// Digest auth requires challenge-response, so we store credentials
-	// The actual digest header is generated after receiving 401 with WWW-Authenticate
-	// For now, return empty - this would need to be handled in the executor
-	return make(map[string]string), nil
+	return nil, fmt.Errorf("Digest authentication not implemented: requires challenge-response handling to receive and respond to WWW-Authenticate challenge")
 }
 
-// generateNTLM generates NTLM authentication (simplified)
+// generateNTLM generates NTLM authentication (not implemented)
 func (r *AuthResolver) generateNTLM(auth *domain.AuthConfig) (map[string]string, error) {
 	username, ok1 := auth.Config["username"].(string)
-	_, ok2 := auth.Config["password"].(string)
-	if !ok1 || !ok2 || username == "" {
-		return nil, fmt.Errorf("username and password are required for NTLM auth")
+	password, ok2 := auth.Config["password"].(string)
+	if !ok1 || !ok2 || username == "" || password == "" {
+		return nil, fmt.Errorf("NTLM authentication not implemented: username and password are required but the scheme requires multiple round-trip handshake with NTLM protocol")
 	}
-
-	// NTLM requires multiple round trips, similar to digest
-	// This is a placeholder
-	return make(map[string]string), nil
+	return nil, fmt.Errorf("NTLM authentication not implemented: requires multiple round-trip handshake with NTLM protocol negotiation")
 }
 
-// generateAWSAuth generates AWS Signature Version 4 headers
+// generateAWSAuth generates AWS Signature Version 4 headers (not implemented)
 func (r *AuthResolver) generateAWSAuth(auth *domain.AuthConfig, method, reqURL string) (map[string]string, error) {
 	accessKeyID, ok1 := auth.Config["accessKeyId"].(string)
 	secretAccessKey, ok2 := auth.Config["secretAccessKey"].(string)
-	region, _ := auth.Config["region"].(string)
-	service, _ := auth.Config["service"].(string)
-
 	if !ok1 || !ok2 || accessKeyID == "" || secretAccessKey == "" {
-		return nil, fmt.Errorf("accessKeyId and secretAccessKey are required for AWS auth")
+		return nil, fmt.Errorf("AWS authentication not implemented: accessKeyId and secretAccessKey are required but the scheme requires proper AWS Signature Version 4 signing")
 	}
-
-	if region == "" {
-		region = "us-east-1"
-	}
-	if service == "" {
-		service = "execute-api"
-	}
-
-	// AWS Signature Version 4 is complex and requires proper signing
-	// This is a placeholder - full implementation would need AWS SDK or crypto
-	// For now, return basic structure
-	return map[string]string{
-		"Authorization": fmt.Sprintf("AWS4-HMAC-SHA256 Credential=%s/...", accessKeyID),
-	}, nil
+	return nil, fmt.Errorf("AWS authentication not implemented: requires proper AWS Signature Version 4 signing of the request with canonical URI, signed headers, and SHA256 hash")
 }
 
-// generateHawk generates Hawk authentication header
+// generateHawk generates Hawk authentication header (not implemented)
 func (r *AuthResolver) generateHawk(auth *domain.AuthConfig, method, reqURL string) (map[string]string, error) {
 	authID, ok1 := auth.Config["authId"].(string)
 	authKey, ok2 := auth.Config["authKey"].(string)
 	if !ok1 || !ok2 || authID == "" || authKey == "" {
-		return nil, fmt.Errorf("authId and authKey are required for Hawk auth")
+		return nil, fmt.Errorf("Hawk authentication not implemented: authId and authKey are required but the scheme requires proper HMAC-SHA256 signing with timestamp and nonce")
 	}
-
-	// Hawk requires proper signature generation with timestamp, nonce, etc.
-	// This is a placeholder
-	return map[string]string{
-		"Authorization": fmt.Sprintf("Hawk id=\"%s\", ...", authID),
-	}, nil
+	return nil, fmt.Errorf("Hawk authentication not implemented: requires proper HMAC-SHA256 signing of the request with timestamp, nonce, and hash of request payload")
 }
 
 // generateASAP generates Atlassian ASAP authentication header
