@@ -140,12 +140,11 @@ export async function ExecuteRequest(req: ExecuteRequestInput): Promise<Response
       headers: req.headers || [],
       bodyType: req.bodyType || 'none',
       body: req.body || '',
-      formData: req.formData || []
+      formData: req.formData || [],
+      requestId: req.requestId || '',
     };
     
-    console.log('Calling ExecuteRequest with:', requestData);
     const result = await app.ExecuteRequest(requestData);
-    console.log('ExecuteRequest result:', result);
     
     // Convert ExecutionResult to ResponseData format expected by frontend
     if (result.error) {
