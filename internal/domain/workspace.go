@@ -21,6 +21,9 @@ type WorkspaceItem struct {
 	BodyType *string     `json:"bodyType,omitempty"` // "none", "json", "form-data", "url-encoded"
 	Body     *string     `json:"body,omitempty"`
 	FormData []FormDataItem `json:"formData,omitempty"`
+
+	// Auth configuration (applies to both requests and folders)
+	Auth *AuthConfig `json:"auth,omitempty"`
 }
 
 // Header represents an HTTP header
@@ -35,4 +38,10 @@ type FormDataItem struct {
 	Key     string `json:"key"`
 	Value   string `json:"value"`
 	Enabled bool   `json:"enabled"`
+}
+
+// AuthConfig represents authentication configuration
+type AuthConfig struct {
+	Type   string                 `json:"type"`   // "none", "inherit", "bearer", "basic", "apikey", "oauth2", "oauth1", "digest", "ntlm", "aws", "hawk", "asap", "netrc"
+	Config map[string]interface{} `json:"config"` // Auth-specific parameters
 }

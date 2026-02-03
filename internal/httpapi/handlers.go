@@ -78,17 +78,59 @@ func (h *Handlers) HandleExecute(w http.ResponseWriter, r *http.Request) {
 
 	// Convert to executor.Request
 	execReq := &executor.Request{
-		Method:   req.Method,
-		URL:      req.URL,
-		Headers:  convertHeaders(req.Headers),
-		BodyType: req.BodyType,
-		Body:     req.Body,
-		FormData: convertFormData(req.FormData),
+		Method:    req.Method,
+		URL:       req.URL,
+		Headers:   convertHeaders(req.Headers),
+		BodyType:  req.BodyType,
+		Body:      req.Body,
+		FormData:  convertFormData(req.FormData),
+		RequestID: req.RequestID,
 	}
 
 	// Execute with request context (timeout handled by executor)
 	ctx := r.Context()
 
+	// If RequestID is provided, load workspace and use auth resolution
+	if req.RequestID != "" {
+		// Load workspace for auth resolution
+		workspace, err := h.store.Load()
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "failed to load workspace", err.Error())
+			return
+		}
+
+		// Find the request item
+		var requestItem *domain.WorkspaceItem
+		for i := range workspace.Items {
+			if workspace.Items[i].ID == req.RequestID && workspace.Items[i].Type == "request" {
+				requestItem = &workspace.Items[i]
+				break
+			}
+		}
+
+		if requestItem == nil {
+			respondError(w, http.StatusBadRequest, "request not found", "")
+			return
+		}
+
+		// Create executor with workspace and request item for auth resolution
+		httpExecutor, ok := h.executor.(*executor.HTTPExecutor)
+		if !ok {
+			respondError(w, http.StatusInternalServerError, "executor type not supported", "")
+			return
+		}
+
+		result, err := httpExecutor.ExecuteWithAuth(ctx, execReq, requestItem, workspace)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "execution failed", err.Error())
+			return
+		}
+
+		respondJSON(w, http.StatusOK, result)
+		return
+	}
+
+	// No RequestID, use generic executor.Execute
 	result, err := h.executor.Execute(ctx, execReq)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "execution failed", err.Error())
@@ -100,13 +142,14 @@ func (h *Handlers) HandleExecute(w http.ResponseWriter, r *http.Request) {
 
 // ExecuteRequest represents the request body for /api/execute
 type ExecuteRequest struct {
-	Method   string                 `json:"method"`
-	URL      string                 `json:"url"`
-	Headers  []domain.Header        `json:"headers"`
-	BodyType string                 `json:"bodyType"`
-	Body     string                 `json:"body"`
-	FormData []domain.FormDataItem  `json:"formData"`
-	Timeout  int                    `json:"timeout"` // seconds, 0 = use default
+	Method    string                `json:"method"`
+	URL       string                `json:"url"`
+	Headers   []domain.Header       `json:"headers"`
+	BodyType  string                `json:"bodyType"`
+	Body      string                `json:"body"`
+	FormData  []domain.FormDataItem `json:"formData"`
+	Timeout   int                   `json:"timeout"`             // seconds, 0 = use default
+	RequestID string                `json:"requestId,omitempty"` // ID of the request item for auth resolution
 }
 
 func validateWorkspace(w *domain.Workspace) error {

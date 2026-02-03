@@ -8,17 +8,21 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 )
 
-//go:embed all:frontend/dist
+//go:embed all:frontend
 var assets embed.FS
 
 // main is the entrypoint for the Wails application
 func main() {
 	// Create an instance of the app structure
-	app := NewApp()
+	app, err := NewApp()
+	if err != nil {
+		println("Failed to create app:", err.Error())
+		return
+	}
 
 	// Create application with options
 	// In Wails v2, exported methods on the app struct are automatically bound to the frontend
-	err := wails.Run(&options.App{
+	err = wails.Run(&options.App{
 		Title:  "Constrictor REST Client",
 		Width:  1400,
 		Height: 900,
@@ -32,6 +36,6 @@ func main() {
 	})
 
 	if err != nil {
-		println("Error:", err.Error())
+		println("Failed to run Wails app:", err.Error())
 	}
 }

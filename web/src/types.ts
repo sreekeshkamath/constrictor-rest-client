@@ -1,5 +1,6 @@
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS' | 'HEAD';
 export type BodyType = 'none' | 'json' | 'form-data' | 'url-encoded';
+export type AuthType = 'none' | 'inherit' | 'bearer' | 'basic' | 'apikey' | 'oauth2' | 'oauth1' | 'digest' | 'ntlm' | 'aws' | 'hawk' | 'asap' | 'netrc';
 
 export interface Header {
   key: string;
@@ -13,6 +14,11 @@ export interface FormDataItem {
   enabled: boolean;
 }
 
+export interface AuthConfig {
+  type: AuthType;
+  config: Record<string, any>;
+}
+
 export interface RequestItem {
   id: string;
   name: string;
@@ -22,6 +28,7 @@ export interface RequestItem {
   bodyType: BodyType;
   body: string;
   formData: FormDataItem[];
+  auth?: AuthConfig;
   parentId?: string | null;
   type: 'request';
   createdAt: number;
@@ -33,6 +40,7 @@ export interface FolderItem {
   parentId?: string | null;
   type: 'folder';
   createdAt: number;
+  auth?: AuthConfig;
 }
 
 export type SidebarItem = RequestItem | FolderItem;

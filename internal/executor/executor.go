@@ -24,12 +24,13 @@ type ExecutionError struct {
 
 // Request represents an HTTP request to execute
 type Request struct {
-	Method   string            `json:"method"`
-	URL      string            `json:"url"`
-	Headers  map[string]string `json:"headers"`
-	BodyType string            `json:"bodyType"` // "none", "json", "form-data", "url-encoded"
-	Body     string            `json:"body"`
-	FormData map[string]string `json:"formData"` // For form-data and url-encoded
+	Method    string            `json:"method"`
+	URL       string            `json:"url"`
+	Headers   map[string]string `json:"headers"`
+	BodyType  string            `json:"bodyType"` // "none", "json", "form-data", "url-encoded"
+	Body      string            `json:"body"`
+	FormData  map[string]string `json:"formData"` // For form-data and url-encoded
+	RequestID string            `json:"requestId,omitempty"` // ID of the request item for auth resolution
 }
 
 // Executor defines the interface for executing HTTP requests
