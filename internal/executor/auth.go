@@ -56,14 +56,11 @@ func (r *AuthResolver) ResolveAuth(item *domain.WorkspaceItem, workspace *domain
 			return parentItem.Auth, nil
 		}
 
-		// If parent has inherit, continue walking up
-		if parentItem.Auth != nil && parentItem.Auth.Type == "inherit" {
+		// If parent has inherit or no auth (nil), continue walking up
+		if parentItem.Auth == nil || parentItem.Auth.Type == "inherit" {
 			currentParentID = parentItem.ParentID
 			continue
 		}
-
-		// Parent has no auth or it's none, default to none
-		return &domain.AuthConfig{Type: "none", Config: make(map[string]interface{})}, nil
 	}
 
 	// Reached root without finding auth, default to none

@@ -56,9 +56,20 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
     auth: request.auth || { type: 'none' },
   };
 
+  // Coerce query location to header (backend doesn't support query for auth)
+  const coercedAuth = normalizedRequest.auth?.config?.location === 'query'
+    ? { ...normalizedRequest.auth, config: { ...normalizedRequest.auth?.config, location: 'header' } }
+    : normalizedRequest.auth;
+
+  useEffect(() => {
+    if (normalizedRequest.auth?.config?.location === 'query') {
+      onUpdate({ auth: coercedAuth });
+    }
+  }, []);
+
   // Sync auth config to headers when auth type changes
   useEffect(() => {
-    const auth = normalizedRequest.auth || { type: 'none', config: {} };
+    const auth = coercedAuth || { type: 'none', config: {} };
     const cfg = auth.config || {};
     const authType = auth.type;
     const cfgKey = cfg.key;
@@ -133,7 +144,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
     normalizedRequest.auth?.config?.password,
     normalizedRequest.auth?.config?.key,
     normalizedRequest.auth?.config?.value,
-    normalizedRequest.auth?.config?.location
+    coercedAuth?.config?.location
   ]);
 
   const addHeader = () => {
@@ -397,7 +408,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
                     onChange={(e) => onUpdate({ auth: { ...normalizedRequest.auth, config: { ...normalizedRequest.auth?.config, value: e.target.value } } })}
                   />
                 </div>
-                <div>
+                <div className="relative group">
                   <label className="block text-[11px] text-[#5f6368] uppercase font-bold tracking-widest mb-2">
                     Location
                   </label>
@@ -405,11 +416,18 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
                     {(['header', 'query'] as const).map(location => (
                       <button
                         key={location}
-                        onClick={() => onUpdate({ auth: { ...normalizedRequest.auth, config: { ...normalizedRequest.auth?.config, location } } })}
+                        onClick={() => {
+                          if (location === 'query') return;
+                          onUpdate({ auth: { ...coercedAuth, config: { ...coercedAuth?.config, location } } });
+                        }}
+                        disabled={location === 'query'}
+                        title={location === 'query' ? 'Query location is not supported for authentication' : undefined}
                         className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded-md transition-all ${
-                          (normalizedRequest.auth?.config?.location || 'header') === location
+                          (coercedAuth?.config?.location || 'header') === location
                             ? 'bg-[#8ab4f8] text-[#131314]'
-                            : 'text-[#9aa0a6] hover:text-[#e8eaed]'
+                            : location === 'query'
+                              ? 'text-[#5f6368] cursor-not-allowed opacity-50'
+                              : 'text-[#9aa0a6] hover:text-[#e8eaed]'
                         }`}
                       >
                         {location.charAt(0).toUpperCase() + location.slice(1)}
@@ -418,9 +436,7 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
                   </div>
                 </div>
                 <p className="text-[11px] text-[#5f6368] italic">
-                  {normalizedRequest.auth?.config?.location === 'query' 
-                    ? 'This will add the API key as a query parameter in the URL'
-                    : 'This will automatically add the API key as a header'}
+                  Authentication keys are sent as headers. Query location is not supported.
                 </p>
               </div>
             )}
