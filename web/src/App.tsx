@@ -14,7 +14,7 @@ const isRequestItem = (item: SidebarItem): item is RequestItem => {
 const App: React.FC = () => {
   const [items, setItems] = useState<SidebarItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [response, setResponse] = useState<ResponseData | null>(null);
+  const [responseCache, setResponseCache] = useState<Map<string, ResponseData>>(new Map());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -150,6 +150,8 @@ const App: React.FC = () => {
 
   const activeItem = items.find(i => i.id === activeId);
 
+  const currentResponse = activeId ? responseCache.get(activeId) ?? null : null;
+
   const updateActiveRequest = (updates: Partial<RequestItem>) => {
     if (!activeId) return;
     const item = items.find(i => i.id === activeId);
@@ -161,7 +163,6 @@ const App: React.FC = () => {
     if (!activeItem || !isRequestItem(activeItem)) return;
     setIsLoading(true);
     setError(null);
-    setResponse(null);
 
     try {
       // Handle API key in query parameters if needed
@@ -192,7 +193,7 @@ const App: React.FC = () => {
         formData: activeItem.formData || []
       });
 
-      setResponse(response);
+      setResponseCache(prev => new Map(prev).set(activeItem.id, response));
     } catch (err: any) {
       console.error('ExecuteRequest error:', err);
       setError(err.message || "Failed to execute request");
@@ -217,7 +218,6 @@ const App: React.FC = () => {
     };
     setItems(prev => [...prev, newReq]);
     setActiveId(newReq.id);
-    setResponse(null);
   };
 
   const handleCreateFolder = (parentId: string | null = null) => {
@@ -281,7 +281,7 @@ const App: React.FC = () => {
           if (confirm('Importing will overwrite your current workspace. Proceed?')) {
           setItems(itemsToImport);
             setActiveId(null);
-            setResponse(null);
+            setResponseCache(new Map());
         }
       } catch (err) {
         alert('Invalid workspace file.');
@@ -293,6 +293,11 @@ const App: React.FC = () => {
 
   const handleDeleteItem = (id: string) => {
     setItems(prev => prev.filter(item => item.id !== id && item.parentId !== id));
+    setResponseCache(prev => {
+      const next = new Map(prev);
+      next.delete(id);
+      return next;
+    });
     if (activeId === id) setActiveId(null);
   };
 
@@ -351,7 +356,7 @@ const App: React.FC = () => {
             </div>
             <div className="flex-1 min-w-0 bg-[#131314]">
               <ResponseViewer
-                response={response}
+                response={currentResponse}
                 isLoading={isLoading}
                 error={error}
               />

@@ -37,3 +37,124 @@ select option {
 select:focus {
   color: #e8eaed !important;
 }
+
+/* Prism Tomorrow Dark Theme Overrides for Constrictor Dark Theme */
+code[class*="language-"],
+pre[class*="language-"] {
+  color: #e8eaed;
+  background: none;
+  text-shadow: none;
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+  font-size: 14px;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  word-wrap: normal;
+  line-height: 1.6;
+  tab-size: 2;
+  hyphens: none;
+}
+
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #5f6368;
+  font-style: italic;
+}
+
+.token.punctuation {
+  color: #9aa0a6;
+}
+
+.token.namespace {
+  opacity: .7;
+}
+
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol,
+.token.deleted {
+  color: #8ab4f8;
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+  color: #81c995;
+}
+
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+  color: #fdd663;
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+  color: #c58af9;
+}
+
+.token.function,
+.token.class-name {
+  color: #fdd663;
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+  color: #f28b82;
+}
+
+.token.important,
+.token.bold {
+  font-weight: bold;
+}
+
+.token.italic {
+  font-style: italic;
+}
+
+.token.entity {
+  cursor: help;
+}
+
+/* Editor container styles */
+.prism-editor-wrapper {
+  min-height: 100%;
+  background: #1e1e20;
+  border-radius: 0.75rem;
+}
+
+.prism-editor-wrapper textarea {
+  outline: none !important;
+}
+
+/* Scrollbar styles for editor */
+.prism-editor-wrapper ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.prism-editor-wrapper ::-webkit-scrollbar-track {
+  background: #131314;
+}
+
+.prism-editor-wrapper ::-webkit-scrollbar-thumb {
+  background: #3c4043;
+  border-radius: 5px;
+}
+
+.prism-editor-wrapper ::-webkit-scrollbar-thumb:hover {
+  background: #5f6368;
+}
