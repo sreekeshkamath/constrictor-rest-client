@@ -237,7 +237,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           >
             Import
           </button>
-          <input type="file" ref={fileInputRef} onChange={onImport} accept=".json" className="hidden" />
+          <input type="file" ref={fileInputRef} onChange={onImport} accept=".json,.yaml,.yml" className="hidden" />
         </div>
         <button
           onClick={onOpenSettings}

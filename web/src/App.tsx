@@ -246,49 +246,97 @@ const App: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      try {
-        const content = event.target?.result as string;
-        const parsed = JSON.parse(content);
-        let itemsToImport: any[] = [];
+    const fileName = file.name.toLowerCase();
+    const isYamlFile = fileName.endsWith('.yaml') || fileName.endsWith('.yml');
 
-        if (Array.isArray(parsed)) {
-          itemsToImport = parsed;
-        } else if (parsed.items && Array.isArray(parsed.items)) {
-          itemsToImport = parsed.items;
-        } else {
-          alert('Invalid workspace file: missing items array.');
-          return;
-        }
+    if (isYamlFile) {
+      await importInsomniaFile(file);
+    } else {
+      await importJsonFile(file);
+    }
+    e.target.value = '';
+  };
 
-        const isValidItem = (item: any): boolean => {
-          return (
-            item &&
-            typeof item.id === 'string' &&
-            typeof item.type === 'string' &&
-            typeof item.name === 'string' &&
-            typeof item.createdAt === 'number'
-          );
-        };
+  const importInsomniaFile = async (file: File) => {
+    setIsLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
 
-        if (!itemsToImport.every(isValidItem)) {
-          console.error('Validation failed for imported items:', itemsToImport);
-          alert('Invalid workspace file: one or more items missing required properties (id, type, name, createdAt).');
-          return;
-        }
+      const response = await fetch('/api/import/insomnia', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Import failed');
+      }
+
+      const result = await response.json();
+      alert(`Successfully imported!\nFolders: ${result.foldersCount}\nRequests: ${result.requestsCount}`);
+
+      const workspace = await GetWorkspace();
+      setItems(workspace || []);
+      setActiveId(null);
+      setResponseCache(new Map());
+    } catch (err: any) {
+      console.error('Insomnia import error:', err);
+      alert('Failed to import Insomnia file: ' + err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const importJsonFile = (file: File) => {
+    return new Promise<void>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const content = event.target?.result as string;
+          const parsed = JSON.parse(content);
+          let itemsToImport: any[] = [];
+
+          if (Array.isArray(parsed)) {
+            itemsToImport = parsed;
+          } else if (parsed.items && Array.isArray(parsed.items)) {
+            itemsToImport = parsed.items;
+          } else {
+            alert('Invalid workspace file: missing items array.');
+            resolve();
+            return;
+          }
+
+          const isValidItem = (item: any): boolean => {
+            return (
+              item &&
+              typeof item.id === 'string' &&
+              typeof item.type === 'string' &&
+              typeof item.name === 'string' &&
+              typeof item.createdAt === 'number'
+            );
+          };
+
+          if (!itemsToImport.every(isValidItem)) {
+            console.error('Validation failed for imported items:', itemsToImport);
+            alert('Invalid workspace file: one or more items missing required properties (id, type, name, createdAt).');
+            resolve();
+            return;
+          }
 
           if (confirm('Importing will overwrite your current workspace. Proceed?')) {
-          setItems(itemsToImport);
+            setItems(itemsToImport);
             setActiveId(null);
             setResponseCache(new Map());
+          }
+          resolve();
+        } catch (err) {
+          alert('Invalid workspace file.');
+          resolve();
         }
-      } catch (err) {
-        alert('Invalid workspace file.');
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
+      };
+      reader.readAsText(file);
+    });
   };
 
   const handleDeleteItem = (id: string) => {
