@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { RequestItem, HttpMethod, Header, BodyType, FormDataItem, AuthType, AuthConfig } from '../types';
+import JsonEditor from './JsonEditor';
 
 interface RequestEditorProps {
   request: RequestItem;
@@ -201,6 +202,14 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isMethodDropdownOpen]);
+
+  const handlePrettify = () => {
+    try {
+      const parsed = JSON.parse(normalizedRequest.body);
+      onUpdate({ body: JSON.stringify(parsed, null, 2) });
+    } catch {
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-[#131314]">
@@ -516,12 +525,21 @@ const RequestEditor: React.FC<RequestEditorProps> = ({ request, onUpdate, onSend
             )}
 
             {normalizedRequest.bodyType === 'json' && (
-              <textarea
-                className="flex-1 bg-[#1e1e20] border border-[#3c4043] rounded-xl p-5 mono text-[14px] outline-none focus:border-[#8ab4f8] text-[#e8eaed] resize-none leading-relaxed shadow-inner"
-                placeholder='{ "message": "hello world" }'
-                value={normalizedRequest.body}
-                onChange={(e) => onUpdate({ body: e.target.value })}
-              />
+              <div className="flex flex-col flex-1">
+                <div className="flex justify-end mb-2">
+                  <button
+                    onClick={handlePrettify}
+                    className="text-[11px] font-bold text-[#8ab4f8] hover:text-[#aecbfa] uppercase tracking-widest transition-colors"
+                  >
+                    Prettify
+                  </button>
+                </div>
+                <JsonEditor
+                  value={normalizedRequest.body}
+                  onChange={(value) => onUpdate({ body: value })}
+                  placeholder='{ "message": "hello world" }'
+                />
+              </div>
             )}
 
             {(normalizedRequest.bodyType === 'form-data' || normalizedRequest.bodyType === 'url-encoded') && (

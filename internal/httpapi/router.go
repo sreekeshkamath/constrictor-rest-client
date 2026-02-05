@@ -10,5 +10,5 @@ func SetupRoutes(r *mux.Router, handlers *Handlers) {
 	api.HandleFunc("/workspace", handlers.HandleGetWorkspace).Methods("GET")
 	api.HandleFunc("/workspace", handlers.HandlePutWorkspace).Methods("PUT")
 	api.HandleFunc("/execute", handlers.HandleExecute).Methods("POST")
-
+	api.HandleFunc("/import/insomnia", handlers.HandleImportInsomnia).Methods("POST")
 }

@@ -2,12 +2,17 @@ package httpapi
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/constrictor/constrictor-rest-client/internal/domain"
 	"github.com/constrictor/constrictor-rest-client/internal/executor"
+	"github.com/constrictor/constrictor-rest-client/internal/importer/insomnia"
 	"github.com/constrictor/constrictor-rest-client/internal/storage"
 )
+
+const maxFileSize = 10 * 1024 * 1024
 
 // APIError represents an API error response
 type APIError struct {
@@ -224,4 +229,81 @@ type ValidationError struct {
 
 func (e *ValidationError) Error() string {
 	return e.Message
+}
+
+// ImportResult represents the response after importing a file
+type ImportResult struct {
+	Status        string `json:"status"`
+	FoldersCount  int    `json:"foldersCount"`
+	RequestsCount int    `json:"requestsCount"`
+}
+
+// HandleImportInsomnia imports an Insomnia YAML backup file
+func (h *Handlers) HandleImportInsomnia(w http.ResponseWriter, r *http.Request) {
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid_file", "no file provided")
+		return
+	}
+	defer file.Close()
+
+	limitedFile := io.LimitReader(file, maxFileSize+1)
+	content, err := io.ReadAll(limitedFile)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "read_failed", "failed to read file")
+		return
+	}
+	if len(content) > maxFileSize {
+		respondError(w, http.StatusRequestEntityTooLarge, "file_too_large", fmt.Sprintf("file exceeds maximum size of %d bytes", maxFileSize))
+		return
+	}
+
+	insomniaExport, err := insomnia.Parse(content)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "parse_failed", err.Error())
+		return
+	}
+
+	items, err := insomnia.Convert(insomniaExport)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "convert_failed", err.Error())
+		return
+	}
+
+	mode := r.URL.Query().Get("mode")
+	var workspace *domain.Workspace
+	if mode == "merge" {
+		workspace, err = h.store.Load()
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "load_failed", "failed to load existing workspace")
+			return
+		}
+		workspace.Items = append(workspace.Items, items...)
+	} else {
+		workspace = &domain.Workspace{
+			Version: 1,
+			Items:   items,
+		}
+	}
+
+	if err := h.store.Save(workspace); err != nil {
+		respondError(w, http.StatusInternalServerError, "save_failed", "failed to save workspace")
+		return
+	}
+
+	foldersCount := 0
+	requestsCount := 0
+	for _, item := range items {
+		if item.Type == "folder" {
+			foldersCount++
+		} else if item.Type == "request" {
+			requestsCount++
+		}
+	}
+
+	respondJSON(w, http.StatusOK, ImportResult{
+		Status:        "success",
+		FoldersCount:  foldersCount,
+		RequestsCount: requestsCount,
+	})
 }

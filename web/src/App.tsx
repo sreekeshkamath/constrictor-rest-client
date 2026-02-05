@@ -14,7 +14,7 @@ const isRequestItem = (item: SidebarItem): item is RequestItem => {
 const App: React.FC = () => {
   const [items, setItems] = useState<SidebarItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [response, setResponse] = useState<ResponseData | null>(null);
+  const [responseCache, setResponseCache] = useState<Map<string, ResponseData>>(new Map());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -150,6 +150,8 @@ const App: React.FC = () => {
 
   const activeItem = items.find(i => i.id === activeId);
 
+  const currentResponse = activeId ? responseCache.get(activeId) ?? null : null;
+
   const updateActiveRequest = (updates: Partial<RequestItem>) => {
     if (!activeId) return;
     const item = items.find(i => i.id === activeId);
@@ -161,7 +163,6 @@ const App: React.FC = () => {
     if (!activeItem || !isRequestItem(activeItem)) return;
     setIsLoading(true);
     setError(null);
-    setResponse(null);
 
     try {
       // Handle API key in query parameters if needed
@@ -192,7 +193,7 @@ const App: React.FC = () => {
         formData: activeItem.formData || []
       });
 
-      setResponse(response);
+      setResponseCache(prev => new Map(prev).set(activeItem.id, response));
     } catch (err: any) {
       console.error('ExecuteRequest error:', err);
       setError(err.message || "Failed to execute request");
@@ -217,7 +218,6 @@ const App: React.FC = () => {
     };
     setItems(prev => [...prev, newReq]);
     setActiveId(newReq.id);
-    setResponse(null);
   };
 
   const handleCreateFolder = (parentId: string | null = null) => {
@@ -246,53 +246,143 @@ const App: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      try {
-        const content = event.target?.result as string;
-        const parsed = JSON.parse(content);
-        let itemsToImport: any[] = [];
+    const fileName = file.name.toLowerCase();
+    const isYamlFile = fileName.endsWith('.yaml') || fileName.endsWith('.yml');
 
-        if (Array.isArray(parsed)) {
-          itemsToImport = parsed;
-        } else if (parsed.items && Array.isArray(parsed.items)) {
-          itemsToImport = parsed.items;
-        } else {
-          alert('Invalid workspace file: missing items array.');
-          return;
-        }
-
-        const isValidItem = (item: any): boolean => {
-          return (
-            item &&
-            typeof item.id === 'string' &&
-            typeof item.type === 'string' &&
-            typeof item.name === 'string' &&
-            typeof item.createdAt === 'number'
-          );
-        };
-
-        if (!itemsToImport.every(isValidItem)) {
-          console.error('Validation failed for imported items:', itemsToImport);
-          alert('Invalid workspace file: one or more items missing required properties (id, type, name, createdAt).');
-          return;
-        }
-
-          if (confirm('Importing will overwrite your current workspace. Proceed?')) {
-          setItems(itemsToImport);
-            setActiveId(null);
-            setResponse(null);
-        }
-      } catch (err) {
-        alert('Invalid workspace file.');
-      }
-    };
-    reader.readAsText(file);
+    if (isYamlFile) {
+      await importInsomniaFile(file);
+    } else {
+      await importJsonFile(file);
+    }
     e.target.value = '';
   };
 
+  const importInsomniaFile = async (file: File) => {
+    setIsLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/import/insomnia', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Import failed';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch {
+          const rawText = await response.text();
+          errorMessage = `Import failed (${response.status} ${response.statusText}): ${rawText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
+      alert(`Successfully imported!\nFolders: ${result.foldersCount}\nRequests: ${result.requestsCount}`);
+
+      const workspace = await GetWorkspace();
+      setItems(workspace || []);
+      setActiveId(null);
+      setResponseCache(new Map());
+    } catch (err: any) {
+      console.error('Insomnia import error:', err);
+      alert('Failed to import Insomnia file: ' + err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const importJsonFile = (file: File) => {
+    return new Promise<void>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const content = event.target?.result as string;
+          const parsed = JSON.parse(content);
+          let itemsToImport: any[] = [];
+
+          if (Array.isArray(parsed)) {
+            itemsToImport = parsed;
+          } else if (parsed.items && Array.isArray(parsed.items)) {
+            itemsToImport = parsed.items;
+          } else {
+            alert('Invalid workspace file: missing items array.');
+            resolve();
+            return;
+          }
+
+          const isValidItem = (item: any): boolean => {
+            return (
+              item &&
+              typeof item.id === 'string' &&
+              typeof item.type === 'string' &&
+              typeof item.name === 'string' &&
+              typeof item.createdAt === 'number'
+            );
+          };
+
+          if (!itemsToImport.every(isValidItem)) {
+            console.error('Validation failed for imported items:', itemsToImport);
+            alert('Invalid workspace file: one or more items missing required properties (id, type, name, createdAt).');
+            resolve();
+            return;
+          }
+
+          if (confirm('Importing will overwrite your current workspace. Proceed?')) {
+            setItems(itemsToImport);
+            setActiveId(null);
+            setResponseCache(new Map());
+          }
+          resolve();
+        } catch (err) {
+          alert('Invalid workspace file.');
+          resolve();
+        }
+      };
+      reader.onerror = () => {
+        console.error('Failed to read file:', file.name);
+        alert('Failed to read workspace file.');
+        resolve();
+      };
+      reader.onabort = () => {
+        console.error('File reading aborted:', file.name);
+        alert('File reading was aborted.');
+        resolve();
+      };
+      reader.readAsText(file);
+    });
+  };
+
   const handleDeleteItem = (id: string) => {
-    setItems(prev => prev.filter(item => item.id !== id && item.parentId !== id));
+    const collectDescendants = (items: SidebarItem[], parentId: string): string[] => {
+      const children = items.filter(item => item.parentId === parentId);
+      return children.reduce<string[]>((acc, child) => {
+        acc.push(child.id);
+        acc.push(...collectDescendants(items, child.id));
+        return acc;
+      }, []);
+    };
+    setItems(prev => {
+      const allIdsToDelete = [id, ...collectDescendants(prev, id)];
+      return prev.filter(item => !allIdsToDelete.includes(item.id));
+    });
+    const collectCacheKeysToDelete = (items: SidebarItem[], parentId: string): string[] => {
+      const children = items.filter(item => item.parentId === parentId);
+      return children.reduce<string[]>((acc, child) => {
+        acc.push(child.id);
+        acc.push(...collectCacheKeysToDelete(items, child.id));
+        return acc;
+      }, []);
+    };
+    const allIdsToDelete = [id, ...collectCacheKeysToDelete(items, id)];
+    setResponseCache(prev => {
+      const next = new Map(prev);
+      allIdsToDelete.forEach(itemId => next.delete(itemId));
+      return next;
+    });
     if (activeId === id) setActiveId(null);
   };
 
@@ -351,7 +441,7 @@ const App: React.FC = () => {
             </div>
             <div className="flex-1 min-w-0 bg-[#131314]">
               <ResponseViewer
-                response={response}
+                response={currentResponse}
                 isLoading={isLoading}
                 error={error}
               />
