@@ -340,10 +340,30 @@ const App: React.FC = () => {
   };
 
   const handleDeleteItem = (id: string) => {
-    setItems(prev => prev.filter(item => item.id !== id && item.parentId !== id));
+    const collectDescendants = (items: SidebarItem[], parentId: string): string[] => {
+      const children = items.filter(item => item.parentId === parentId);
+      return children.reduce<string[]>((acc, child) => {
+        acc.push(child.id);
+        acc.push(...collectDescendants(items, child.id));
+        return acc;
+      }, []);
+    };
+    setItems(prev => {
+      const allIdsToDelete = [id, ...collectDescendants(prev, id)];
+      return prev.filter(item => !allIdsToDelete.includes(item.id));
+    });
     setResponseCache(prev => {
+      const collectCacheKeysToDelete = (items: SidebarItem[], parentId: string): string[] => {
+        const children = items.filter(item => item.parentId === parentId);
+        return children.reduce<string[]>((acc, child) => {
+          acc.push(child.id);
+          acc.push(...collectCacheKeysToDelete(items, child.id));
+          return acc;
+        }, []);
+      };
+      const allIdsToDelete = [id, ...collectCacheKeysToDelete(items, id)];
       const next = new Map(prev);
-      next.delete(id);
+      allIdsToDelete.forEach(itemId => next.delete(itemId));
       return next;
     });
     if (activeId === id) setActiveId(null);
