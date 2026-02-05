@@ -269,8 +269,15 @@ const App: React.FC = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Import failed');
+        let errorMessage = 'Import failed';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch {
+          const rawText = await response.text();
+          errorMessage = `Import failed (${response.status} ${response.statusText}): ${rawText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -334,6 +341,16 @@ const App: React.FC = () => {
           alert('Invalid workspace file.');
           resolve();
         }
+      };
+      reader.onerror = () => {
+        console.error('Failed to read file:', file.name);
+        alert('Failed to read workspace file.');
+        resolve();
+      };
+      reader.onabort = () => {
+        console.error('File reading aborted:', file.name);
+        alert('File reading was aborted.');
+        resolve();
       };
       reader.readAsText(file);
     });

@@ -82,21 +82,6 @@ func convertHeaders(headers []InsomniaHeader) []domain.Header {
 	return result
 }
 
-func convertParametersToHeaders(params []InsomniaParam) []domain.Header {
-	if len(params) == 0 {
-		return nil
-	}
-	result := make([]domain.Header, 0, len(params))
-	for _, p := range params {
-		result = append(result, domain.Header{
-			Key:     p.Name,
-			Value:   p.Value,
-			Enabled: !p.Disabled,
-		})
-	}
-	return result
-}
-
 func convertBodyType(body *InsomniaBody) *string {
 	if body == nil || body.MimeType == "" {
 		none := "none"
@@ -177,7 +162,7 @@ func mergeParametersIntoURL(originalURL string, params []InsomniaParam) string {
 	queryParams := parsedURL.Query()
 	for _, p := range params {
 		if !p.Disabled {
-			queryParams.Set(url.QueryEscape(p.Name), url.QueryEscape(p.Value))
+			queryParams.Set(p.Name, p.Value)
 		}
 	}
 	parsedURL.RawQuery = queryParams.Encode()
