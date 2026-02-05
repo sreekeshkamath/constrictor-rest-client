@@ -4,7 +4,7 @@ import RequestEditor from './components/RequestEditor';
 import ResponseViewer from './components/ResponseViewer';
 import SettingsModal from './components/SettingsModal';
 import { SidebarItem, RequestItem, ResponseData, AppSettings } from './types';
-import { GetWorkspace, SaveWorkspace, ExecuteRequest } from './wails';
+import { GetWorkspace, SaveWorkspace, ExecuteRequest, ImportInsomnia, isWailsRuntime } from './wails';
 import { v4 as uuidv4 } from 'uuid';
 
 const isRequestItem = (item: SidebarItem): item is RequestItem => {
@@ -260,31 +260,41 @@ const App: React.FC = () => {
   const importInsomniaFile = async (file: File) => {
     setIsLoading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      if (isWailsRuntime()) {
+        // Desktop app: use Wails binding (no HTTP server in Wails)
+        const content = await file.text();
+        const result = await ImportInsomnia(content);
+        alert(`Successfully imported!\nFolders: ${result.foldersCount}\nRequests: ${result.requestsCount}`);
+        const workspace = await GetWorkspace();
+        setItems(workspace || []);
+      } else {
+        // Web dev: use HTTP API
+        const formData = new FormData();
+        formData.append('file', file);
 
-      const response = await fetch('/api/import/insomnia', {
-        method: 'POST',
-        body: formData,
-      });
+        const response = await fetch('/api/import/insomnia', {
+          method: 'POST',
+          body: formData,
+        });
 
-      if (!response.ok) {
-        let errorMessage = 'Import failed';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          const rawText = await response.text();
-          errorMessage = `Import failed (${response.status} ${response.statusText}): ${rawText}`;
+        if (!response.ok) {
+          let errorMessage = 'Import failed';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch {
+            const rawText = await response.text();
+            errorMessage = `Import failed (${response.status} ${response.statusText}): ${rawText}`;
+          }
+          throw new Error(errorMessage);
         }
-        throw new Error(errorMessage);
+
+        const result = await response.json();
+        alert(`Successfully imported!\nFolders: ${result.foldersCount}\nRequests: ${result.requestsCount}`);
+
+        const workspace = await GetWorkspace();
+        setItems(workspace || []);
       }
-
-      const result = await response.json();
-      alert(`Successfully imported!\nFolders: ${result.foldersCount}\nRequests: ${result.requestsCount}`);
-
-      const workspace = await GetWorkspace();
-      setItems(workspace || []);
       setActiveId(null);
       setResponseCache(new Map());
     } catch (err: any) {

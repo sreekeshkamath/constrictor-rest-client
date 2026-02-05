@@ -45,11 +45,21 @@ export interface ExecutionResult {
 }
 
 /**
+ * ImportResult matches the Go ImportResult struct (Insomnia import)
+ */
+export interface ImportResult {
+  status: string;
+  foldersCount: number;
+  requestsCount: number;
+}
+
+/**
  * App interface matching the Go App struct methods
  */
 interface App {
   GetWorkspace(): Promise<SidebarItem[]>;
   SaveWorkspace(items: SidebarItem[]): Promise<void>;
+  ImportInsomnia(yamlContent: string): Promise<ImportResult>;
   ExecuteRequest(req: ExecuteRequestInput): Promise<ExecutionResult>;
 }
 
@@ -114,6 +124,20 @@ export async function SaveWorkspace(items: SidebarItem[]): Promise<void> {
     console.error('Failed to save workspace:', error);
     // Don't throw - just log the error
   }
+}
+
+/**
+ * Import an Insomnia YAML backup via Wails (desktop app only).
+ * @param yamlContent Raw YAML string of the Insomnia export
+ * @returns Promise resolving to ImportResult with counts
+ * @throws Error if Wails runtime is not available or import fails
+ */
+export async function ImportInsomnia(yamlContent: string): Promise<ImportResult> {
+  const app = getApp();
+  if (!app) {
+    throw new Error('Wails runtime is not available');
+  }
+  return app.ImportInsomnia(yamlContent);
 }
 
 /**

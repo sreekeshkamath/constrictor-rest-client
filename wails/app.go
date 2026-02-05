@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/constrictor/constrictor-rest-client/internal/config"
 	"github.com/constrictor/constrictor-rest-client/internal/domain"
 	"github.com/constrictor/constrictor-rest-client/internal/executor"
+	"github.com/constrictor/constrictor-rest-client/internal/importer/insomnia"
 	"github.com/constrictor/constrictor-rest-client/internal/storage"
 )
 
@@ -172,6 +174,15 @@ func convertFormDataArrayToMap(formData []domain.FormDataItem) map[string]string
 	return result
 }
 
+// ImportResult is the result of an Insomnia import (matches HTTP API shape for frontend)
+type ImportResult struct {
+	Status        string `json:"status"`
+	FoldersCount  int    `json:"foldersCount"`
+	RequestsCount int    `json:"requestsCount"`
+}
+
+const maxImportFileSize = 10 * 1024 * 1024 // 10MB, same as HTTP handler
+
 // App struct with exported methods for Wails bindings
 type App struct {
 	ctx      context.Context
@@ -215,6 +226,44 @@ func (a *App) GetWorkspace() ([]SidebarItem, error) {
 func (a *App) SaveWorkspace(items []SidebarItem) error {
 	workspace := convertItemsToWorkspace(items)
 	return a.store.Save(workspace)
+}
+
+// ImportInsomnia imports an Insomnia YAML backup string into the workspace.
+// Used by the Wails desktop app where the HTTP API is not available.
+func (a *App) ImportInsomnia(yamlContent string) (*ImportResult, error) {
+	content := []byte(yamlContent)
+	if len(content) > maxImportFileSize {
+		return nil, fmt.Errorf("file exceeds maximum size of %d bytes", maxImportFileSize)
+	}
+	export, err := insomnia.Parse(content)
+	if err != nil {
+		return nil, err
+	}
+	items, err := insomnia.Convert(export)
+	if err != nil {
+		return nil, err
+	}
+	workspace := &domain.Workspace{
+		Version: 1,
+		Items:   items,
+	}
+	if err := a.store.Save(workspace); err != nil {
+		return nil, err
+	}
+	foldersCount := 0
+	requestsCount := 0
+	for _, item := range items {
+		if item.Type == "folder" {
+			foldersCount++
+		} else if item.Type == "request" {
+			requestsCount++
+		}
+	}
+	return &ImportResult{
+		Status:        "success",
+		FoldersCount:  foldersCount,
+		RequestsCount: requestsCount,
+	}, nil
 }
 
 // ExecuteRequest executes an HTTP request
