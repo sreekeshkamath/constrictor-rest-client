@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -10,6 +11,8 @@ import (
 	"github.com/constrictor/constrictor-rest-client/internal/importer/insomnia"
 	"github.com/constrictor/constrictor-rest-client/internal/storage"
 )
+
+const maxFileSize = 10 * 1024 * 1024
 
 // APIError represents an API error response
 type APIError struct {
@@ -244,9 +247,14 @@ func (h *Handlers) HandleImportInsomnia(w http.ResponseWriter, r *http.Request) 
 	}
 	defer file.Close()
 
-	content, err := io.ReadAll(file)
+	limitedFile := io.LimitReader(file, maxFileSize+1)
+	content, err := io.ReadAll(limitedFile)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "read_failed", "failed to read file")
+		return
+	}
+	if len(content) > maxFileSize {
+		respondError(w, http.StatusRequestEntityTooLarge, "file_too_large", fmt.Sprintf("file exceeds maximum size of %d bytes", maxFileSize))
 		return
 	}
 

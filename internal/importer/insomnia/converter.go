@@ -1,6 +1,8 @@
 package insomnia
 
 import (
+	"net/url"
+
 	"github.com/constrictor/constrictor-rest-client/internal/domain"
 	"github.com/google/uuid"
 )
@@ -54,9 +56,9 @@ func convertItem(item InsomniaItem, parentID *string) ([]domain.WorkspaceItem, e
 			Auth:      convertAuth(item.Authentication),
 		}
 
-		if item.Parameters != nil {
-			paramHeaders := convertParametersToHeaders(item.Parameters)
-			request.Headers = append(request.Headers, paramHeaders...)
+		if item.Parameters != nil && request.URL != nil {
+			url := mergeParametersIntoURL(*request.URL, item.Parameters)
+			request.URL = &url
 		}
 
 		items = append(items, request)
@@ -139,7 +141,7 @@ func convertFormData(body *InsomniaBody) []domain.FormDataItem {
 }
 
 func convertAuth(auth *InsomniaAuth) *domain.AuthConfig {
-	if auth == nil || auth.Type == "" {
+	if auth == nil || auth.Disabled || auth.Type == "" {
 		none := "none"
 		return &domain.AuthConfig{Type: none}
 	}
@@ -164,4 +166,20 @@ func convertAuth(auth *InsomniaAuth) *domain.AuthConfig {
 		Type:   auth.Type,
 		Config: config,
 	}
+}
+
+func mergeParametersIntoURL(originalURL string, params []InsomniaParam) string {
+	parsedURL, err := url.Parse(originalURL)
+	if err != nil {
+		return originalURL
+	}
+
+	queryParams := parsedURL.Query()
+	for _, p := range params {
+		if !p.Disabled {
+			queryParams.Set(url.QueryEscape(p.Name), url.QueryEscape(p.Value))
+		}
+	}
+	parsedURL.RawQuery = queryParams.Encode()
+	return parsedURL.String()
 }

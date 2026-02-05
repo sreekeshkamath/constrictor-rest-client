@@ -400,7 +400,7 @@ func TestConvert_URLEncodedBody(t *testing.T) {
 	}
 }
 
-func TestConvert_ParametersAsHeaders(t *testing.T) {
+func TestConvert_ParametersAsQueryParams(t *testing.T) {
 	export := &InsomniaExport{
 		Type:          "collection.insomnia.rest/5.0",
 		SchemaVersion: "5.1",
@@ -428,11 +428,15 @@ func TestConvert_ParametersAsHeaders(t *testing.T) {
 	}
 
 	item := items[0]
-	if len(item.Headers) != 1 {
-		t.Errorf("expected 1 header from parameters, got %d", len(item.Headers))
+	if len(item.Headers) != 0 {
+		t.Errorf("expected 0 headers from parameters, got %d", len(item.Headers))
 	}
-	if item.Headers[0].Key != "param2" || item.Headers[0].Value != "value2" {
-		t.Errorf("expected header 'param2: value2', got '%s: %s'", item.Headers[0].Key, item.Headers[0].Value)
+	if item.URL == nil {
+		t.Fatal("expected URL to be set")
+	}
+	expectedURL := "http://example.com/api?param1=value1&param2=value2"
+	if *item.URL != expectedURL {
+		t.Errorf("expected URL '%s', got '%s'", expectedURL, *item.URL)
 	}
 }
 
@@ -539,8 +543,8 @@ func TestConvert_DisabledAuth(t *testing.T) {
 	if item.Auth == nil {
 		t.Fatal("expected auth to be set")
 	}
-	if item.Auth.Type != "bearer" {
-		t.Errorf("expected auth type 'bearer', got '%s'", item.Auth.Type)
+	if item.Auth.Type != "none" {
+		t.Errorf("expected auth type 'none', got '%s'", item.Auth.Type)
 	}
 }
 
