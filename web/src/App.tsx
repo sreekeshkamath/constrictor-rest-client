@@ -258,6 +258,9 @@ const App: React.FC = () => {
   };
 
   const importInsomniaFile = async (file: File) => {
+    if (!confirm('Importing will overwrite your current workspace. Proceed?')) {
+      return;
+    }
     setIsLoading(true);
     try {
       if (isWailsRuntime()) {
@@ -265,8 +268,13 @@ const App: React.FC = () => {
         const content = await file.text();
         const result = await ImportInsomnia(content);
         alert(`Successfully imported!\nFolders: ${result.foldersCount}\nRequests: ${result.requestsCount}`);
-        const workspace = await GetWorkspace();
-        setItems(workspace || []);
+        try {
+          const workspace = await GetWorkspace();
+          setItems(workspace || []);
+        } catch (workspaceErr: any) {
+          console.error('Failed to reload workspace after import:', workspaceErr);
+          alert('Import succeeded but failed to refresh workspace — please reload');
+        }
       } else {
         // Web dev: use HTTP API
         const formData = new FormData();
@@ -279,17 +287,18 @@ const App: React.FC = () => {
 
         if (!response.ok) {
           let errorMessage = 'Import failed';
+          const text = await response.text();
           try {
-            const errorData = await response.json();
-            errorMessage = errorData.message || errorMessage;
+            const data = JSON.parse(text);
+            errorMessage = data.message || errorMessage;
           } catch {
-            const rawText = await response.text();
-            errorMessage = `Import failed (${response.status} ${response.statusText}): ${rawText}`;
+            errorMessage = `Import failed (${response.status} ${response.statusText}): ${text}`;
           }
           throw new Error(errorMessage);
         }
 
-        const result = await response.json();
+        const text = await response.text();
+        const result = JSON.parse(text);
         alert(`Successfully imported!\nFolders: ${result.foldersCount}\nRequests: ${result.requestsCount}`);
 
         const wsResponse = await fetch('/api/workspace');
