@@ -292,7 +292,11 @@ const App: React.FC = () => {
         const result = await response.json();
         alert(`Successfully imported!\nFolders: ${result.foldersCount}\nRequests: ${result.requestsCount}`);
 
-        const workspace = await GetWorkspace();
+        const wsResponse = await fetch('/api/workspace');
+        if (!wsResponse.ok) {
+          throw new Error(`Failed to reload workspace (${wsResponse.status} ${wsResponse.statusText})`);
+        }
+        const workspace = await wsResponse.json();
         setItems(workspace || []);
       }
       setActiveId(null);
