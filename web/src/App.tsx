@@ -297,7 +297,7 @@ const App: React.FC = () => {
           throw new Error(`Failed to reload workspace (${wsResponse.status} ${wsResponse.statusText})`);
         }
         const workspace = await wsResponse.json();
-        setItems(workspace || []);
+        setItems(workspace?.items || []);
       }
       setActiveId(null);
       setResponseCache(new Map());
@@ -383,7 +383,9 @@ const App: React.FC = () => {
       const allIdsToDelete = [id, ...collectDescendants(prev, id)];
       setResponseCache(cache => {
         const next = new Map(cache);
-        allIdsToDelete.forEach(itemId => next.delete(itemId));
+        for (const itemId of allIdsToDelete) {
+          next.delete(itemId);
+        }
         return next;
       });
       return prev.filter(item => !allIdsToDelete.includes(item.id));
