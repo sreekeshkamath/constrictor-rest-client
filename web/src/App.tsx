@@ -298,8 +298,14 @@ const App: React.FC = () => {
         }
 
         const text = await response.text();
-        const result = JSON.parse(text);
-        alert(`Successfully imported!\nFolders: ${result.foldersCount}\nRequests: ${result.requestsCount}`);
+        let result: any;
+        try {
+          result = JSON.parse(text);
+        } catch {
+          result = { parseFailed: true, rawResponse: text };
+          alert('Import succeeded but failed to parse server response');
+        }
+        alert(`Successfully imported!\nFolders: ${result.foldersCount ?? 'N/A'}\nRequests: ${result.requestsCount ?? 'N/A'}`);
 
         try {
           const wsResponse = await fetch('/api/workspace');
