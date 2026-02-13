@@ -301,12 +301,17 @@ const App: React.FC = () => {
         const result = JSON.parse(text);
         alert(`Successfully imported!\nFolders: ${result.foldersCount}\nRequests: ${result.requestsCount}`);
 
-        const wsResponse = await fetch('/api/workspace');
-        if (!wsResponse.ok) {
-          throw new Error(`Failed to reload workspace (${wsResponse.status} ${wsResponse.statusText})`);
+        try {
+          const wsResponse = await fetch('/api/workspace');
+          if (!wsResponse.ok) {
+            throw new Error(`Failed to reload workspace (${wsResponse.status} ${wsResponse.statusText})`);
+          }
+          const workspace = await wsResponse.json();
+          setItems(workspace?.items || []);
+        } catch (workspaceErr: any) {
+          console.error('Failed to reload workspace after import:', workspaceErr);
+          alert('Import succeeded but failed to refresh workspace — please reload');
         }
-        const workspace = await wsResponse.json();
-        setItems(workspace?.items || []);
       }
       setActiveId(null);
       setResponseCache(new Map());
