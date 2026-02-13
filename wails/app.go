@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/constrictor/constrictor-rest-client/internal/config"
 	"github.com/constrictor/constrictor-rest-client/internal/domain"
 	"github.com/constrictor/constrictor-rest-client/internal/executor"
+	"github.com/constrictor/constrictor-rest-client/internal/importer/insomnia"
 	"github.com/constrictor/constrictor-rest-client/internal/storage"
 )
 
@@ -20,11 +22,11 @@ type SidebarItem struct {
 	CreatedAt int64   `json:"createdAt"`
 
 	// Request-specific fields (only present when Type == "request")
-	Method   *string         `json:"method,omitempty"`
-	URL      *string         `json:"url,omitempty"`
-	Headers  []domain.Header `json:"headers,omitempty"`
-	BodyType *string         `json:"bodyType,omitempty"` // "none", "json", "form-data", "url-encoded"
-	Body     *string         `json:"body,omitempty"`
+	Method   *string               `json:"method,omitempty"`
+	URL      *string               `json:"url,omitempty"`
+	Headers  []domain.Header       `json:"headers,omitempty"`
+	BodyType *string               `json:"bodyType,omitempty"` // "none", "json", "form-data", "url-encoded"
+	Body     *string               `json:"body,omitempty"`
 	FormData []domain.FormDataItem `json:"formData,omitempty"`
 
 	// Auth configuration (applies to both requests and folders)
@@ -33,13 +35,13 @@ type SidebarItem struct {
 
 // ExecuteRequestInput represents the input for ExecuteRequest matching frontend format
 type ExecuteRequestInput struct {
-	Method    string             `json:"method"`
-	URL       string             `json:"url"`
-	Headers   []domain.Header    `json:"headers"`
-	BodyType  string             `json:"bodyType"` // "none", "json", "form-data", "url-encoded"
-	Body      string             `json:"body"`
+	Method    string                `json:"method"`
+	URL       string                `json:"url"`
+	Headers   []domain.Header       `json:"headers"`
+	BodyType  string                `json:"bodyType"` // "none", "json", "form-data", "url-encoded"
+	Body      string                `json:"body"`
 	FormData  []domain.FormDataItem `json:"formData"`
-	RequestID string             `json:"requestId,omitempty"` // ID of the request item for auth resolution
+	RequestID string                `json:"requestId,omitempty"` // ID of the request item for auth resolution
 }
 
 // convertWorkspaceToItems converts a domain.Workspace to an array of SidebarItem
@@ -172,6 +174,15 @@ func convertFormDataArrayToMap(formData []domain.FormDataItem) map[string]string
 	return result
 }
 
+// ImportResult is the result of an Insomnia import (matches HTTP API shape for frontend)
+type ImportResult struct {
+	Status        string `json:"status"`
+	FoldersCount  int    `json:"foldersCount"`
+	RequestsCount int    `json:"requestsCount"`
+}
+
+const maxImportFileSize = 10 * 1024 * 1024 // 10MB, same as HTTP handler
+
 // App struct with exported methods for Wails bindings
 type App struct {
 	ctx      context.Context
@@ -215,6 +226,65 @@ func (a *App) GetWorkspace() ([]SidebarItem, error) {
 func (a *App) SaveWorkspace(items []SidebarItem) error {
 	workspace := convertItemsToWorkspace(items)
 	return a.store.Save(workspace)
+}
+
+// ImportInsomnia imports an Insomnia YAML backup string into the workspace.
+// Used by the Wails desktop app where the HTTP API is not available.
+// mode is optional and defaults to "replace". Use "merge" to append imported items
+// to the existing workspace instead of replacing it entirely.
+func (a *App) ImportInsomnia(yamlContent string, mode ...string) (*ImportResult, error) {
+	content := []byte(yamlContent)
+	if len(content) > maxImportFileSize {
+		return nil, fmt.Errorf("file exceeds maximum size of %d bytes", maxImportFileSize)
+	}
+	export, err := insomnia.Parse(content)
+	if err != nil {
+		return nil, err
+	}
+	importedItems, err := insomnia.Convert(export)
+	if err != nil {
+		return nil, err
+	}
+
+	mergeMode := false
+	if len(mode) > 0 && mode[0] == "merge" {
+		mergeMode = true
+	}
+
+	var workspace *domain.Workspace
+	if mergeMode {
+		existingWorkspace, err := a.store.Load()
+		if err != nil {
+			return nil, fmt.Errorf("failed to load existing workspace for merge: %w", err)
+		}
+		workspace = &domain.Workspace{
+			Version: existingWorkspace.Version,
+			Items:   append(existingWorkspace.Items, importedItems...),
+		}
+	} else {
+		workspace = &domain.Workspace{
+			Version: 1,
+			Items:   importedItems,
+		}
+	}
+
+	if err := a.store.Save(workspace); err != nil {
+		return nil, err
+	}
+	foldersCount := 0
+	requestsCount := 0
+	for _, item := range importedItems {
+		if item.Type == "folder" {
+			foldersCount++
+		} else if item.Type == "request" {
+			requestsCount++
+		}
+	}
+	return &ImportResult{
+		Status:        "success",
+		FoldersCount:  foldersCount,
+		RequestsCount: requestsCount,
+	}, nil
 }
 
 // ExecuteRequest executes an HTTP request

@@ -4,7 +4,7 @@ import RequestEditor from './components/RequestEditor';
 import ResponseViewer from './components/ResponseViewer';
 import SettingsModal from './components/SettingsModal';
 import { SidebarItem, RequestItem, ResponseData, AppSettings } from './types';
-import { GetWorkspace, SaveWorkspace, ExecuteRequest } from './wails';
+import { GetWorkspace, SaveWorkspace, ExecuteRequest, ImportInsomnia, isWailsRuntime } from './wails';
 import { v4 as uuidv4 } from 'uuid';
 
 const isRequestItem = (item: SidebarItem): item is RequestItem => {
@@ -258,33 +258,69 @@ const App: React.FC = () => {
   };
 
   const importInsomniaFile = async (file: File) => {
+    if (!confirm('Importing will overwrite your current workspace. Proceed?')) {
+      return;
+    }
     setIsLoading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('/api/import/insomnia', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        let errorMessage = 'Import failed';
+      if (isWailsRuntime()) {
+        // Desktop app: use Wails binding (no HTTP server in Wails)
+        const content = await file.text();
+        const result = await ImportInsomnia(content);
+        alert(`Successfully imported!\nFolders: ${result.foldersCount}\nRequests: ${result.requestsCount}`);
         try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          const rawText = await response.text();
-          errorMessage = `Import failed (${response.status} ${response.statusText}): ${rawText}`;
+          const workspace = await GetWorkspace();
+          setItems(workspace || []);
+        } catch (workspaceErr: any) {
+          console.error('Failed to reload workspace after import:', workspaceErr);
+          alert('Import succeeded but failed to refresh workspace — please reload');
         }
-        throw new Error(errorMessage);
+      } else {
+        // Web dev: use HTTP API
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/import/insomnia', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          let errorMessage = 'Import failed';
+          const text = await response.text();
+          try {
+            const data = JSON.parse(text);
+            errorMessage = data.message || errorMessage;
+          } catch {
+            errorMessage = `Import failed (${response.status} ${response.statusText}): ${text}`;
+          }
+          throw new Error(errorMessage);
+        }
+
+        const text = await response.text();
+        let result: any;
+        try {
+          result = JSON.parse(text);
+        } catch {
+          result = { parseFailed: true, rawResponse: text };
+          alert('Import succeeded but failed to parse server response');
+        }
+        if (!result.parseFailed) {
+          alert(`Successfully imported!\nFolders: ${result.foldersCount ?? 'N/A'}\nRequests: ${result.requestsCount ?? 'N/A'}`);
+        }
+
+        try {
+          const wsResponse = await fetch('/api/workspace');
+          if (!wsResponse.ok) {
+            throw new Error(`Failed to reload workspace (${wsResponse.status} ${wsResponse.statusText})`);
+          }
+          const workspace = await wsResponse.json();
+          setItems(workspace?.items || []);
+        } catch (workspaceErr: any) {
+          console.error('Failed to reload workspace after import:', workspaceErr);
+          alert('Import succeeded but failed to refresh workspace — please reload');
+        }
       }
-
-      const result = await response.json();
-      alert(`Successfully imported!\nFolders: ${result.foldersCount}\nRequests: ${result.requestsCount}`);
-
-      const workspace = await GetWorkspace();
-      setItems(workspace || []);
       setActiveId(null);
       setResponseCache(new Map());
     } catch (err: any) {
@@ -357,31 +393,24 @@ const App: React.FC = () => {
   };
 
   const handleDeleteItem = (id: string) => {
-    const collectDescendants = (items: SidebarItem[], parentId: string): string[] => {
-      const children = items.filter(item => item.parentId === parentId);
-      return children.reduce<string[]>((acc, child) => {
-        acc.push(child.id);
-        acc.push(...collectDescendants(items, child.id));
-        return acc;
-      }, []);
-    };
     setItems(prev => {
+      const collectDescendants = (items: SidebarItem[], parentId: string): string[] => {
+        const children = items.filter(item => item.parentId === parentId);
+        return children.reduce<string[]>((acc, child) => {
+          acc.push(child.id);
+          acc.push(...collectDescendants(items, child.id));
+          return acc;
+        }, []);
+      };
       const allIdsToDelete = [id, ...collectDescendants(prev, id)];
+      setResponseCache(cache => {
+        const next = new Map(cache);
+        for (const itemId of allIdsToDelete) {
+          next.delete(itemId);
+        }
+        return next;
+      });
       return prev.filter(item => !allIdsToDelete.includes(item.id));
-    });
-    const collectCacheKeysToDelete = (items: SidebarItem[], parentId: string): string[] => {
-      const children = items.filter(item => item.parentId === parentId);
-      return children.reduce<string[]>((acc, child) => {
-        acc.push(child.id);
-        acc.push(...collectCacheKeysToDelete(items, child.id));
-        return acc;
-      }, []);
-    };
-    const allIdsToDelete = [id, ...collectCacheKeysToDelete(items, id)];
-    setResponseCache(prev => {
-      const next = new Map(prev);
-      allIdsToDelete.forEach(itemId => next.delete(itemId));
-      return next;
     });
     if (activeId === id) setActiveId(null);
   };
